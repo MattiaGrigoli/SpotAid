@@ -1,2 +1,4 @@
 .venv/
 env_site/
+db.sqlite3
+.idea/
