@@ -13,7 +13,7 @@ class Distributor(models.Model):
     status = models.CharField(max_length=200, choices=Status.choices)
     #temporary
     address = models.CharField(max_length=200) #the address and...
-    position = models.CharField(max_lenght = 200) #the geolocalization of the distributor
+    position = models.CharField(max_length = 200) #the geolocalization of the distributor
 ##
 
 class Product(models.Model):
