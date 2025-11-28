@@ -1,5 +1,6 @@
 from django.core.management.commands.makemessages import STATUS_OK
 from django.db import models
+from rest_framework import serializers
 
 # Create your models here.
 class Distributor(models.Model):
@@ -44,6 +45,7 @@ class ProductsInDistributor(models.Model):
         quantity = self.quantity if self.quantity > 0 else 0
         return {'id_distributor': self.id_distributor.id, 'id_product': self.id_product.id, 'quantity': quantity}
 
+# if exists then pharmacy, otherwise normal user
 class User(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
@@ -52,3 +54,23 @@ class User(models.Model):
 
     def to_dict(self):
         return {'id': self.id, 'name': self.name, 'email': self.email, 'password': self.password}
+
+#Serializers for JSON response in API
+class SerDistributor(serializers.ModelSerializer):
+    class Meta:
+        model = Distributor
+        fields = "__all__"
+
+class SerProduct(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = "__all__"
+
+class SerUser(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = "__all__"
+class SerProductInDistributor(serializers.ModelSerializer):
+    class Meta:
+        model = ProductsInDistributor
+        fields = "__all__"
