@@ -1,0 +1,119 @@
+body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #222; /* Sfondo scuro */
+            color: #eee; /* Testo chiaro */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* La pagina occupa almeno l'altezza della viewport */
+        }
+
+        .header {
+            background-color: #333;
+            padding: 15px 30px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.8em;
+            color: #fff;
+        }
+
+        .login-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .login-form input[type="text"],
+        .login-form input[type="password"] {
+            padding: 8px 12px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background-color: #444;
+            color: #eee;
+            font-size: 0.9em;
+            width: 150px; /* Larghezza fissa per gli input */
+        }
+
+        .login-form button {
+            background-color: #40ff00; /* Blu primario */
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.2s ease;
+        }
+
+        .login-form button:hover {
+            background-color: #00b303;
+        }
+
+        .main-content {
+            flex-grow: 1; /* Il contenuto principale occupa lo spazio rimanente */
+            display: flex;
+            justify-content: center; /* Centra orizzontalmente */
+            align-items: center; /* Centra verticalmente (se c'è spazio extra) */
+            padding: 20px;
+            box-sizing: border-box; /* Include padding nella larghezza/altezza */
+            background-color: #616161;
+        }
+
+        .map-container-wrapper {
+            background-color: #333;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            width: 80%; /* La mappa prende l'80% della larghezza disponibile del main-content */
+            max-width: 900px; /* Larghezza massima per evitare che sia troppo grande su schermi ampi */
+            height: 600px; /* Altezza fissa per la mappa */
+            display: flex;
+            flex-direction: column; /* Per allineare il titolo e la mappa */
+        }
+
+        .map-container-wrapper h2 {
+            margin-top: 0;
+            color: #fff;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        #map-container {
+            flex-grow: 1; /* La mappa si espande per riempire lo spazio */
+            border-radius: 5px; /* Bordi arrotondati per la mappa */
+            overflow: hidden; /* Nasconde ciò che esce dai bordi */
+            background-color: #444; /* Colore di fallback per la mappa */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 10px;
+                padding: 15px;
+            }
+            .login-form {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .login-form input {
+                width: 100%;
+                max-width: 250px;
+            }
+            .map-container-wrapper {
+                width: 95%; /* Più largo su schermi piccoli */
+                padding: 15px;
+                height: 400px; /* Altezza ridotta su mobile */
+            }
+        }
+
+        /* Stili Folium generati - assicurati che non vengano sovrascritti dai tuoi stili */
+        /* Questi vengono inseriti automaticamente da {{ map.header.render|safe }} */
+        /* e {{ map.script.render|safe }} */

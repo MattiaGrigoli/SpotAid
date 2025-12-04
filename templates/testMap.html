@@ -1,15 +1,48 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <title>Houses</title>
-      <!-- the header of the map can be put inside a div to control the size!-->
-    {{map.header.render|safe}}
+      {{map.header.render|safe}}
   </head>
   <body>
-    {{map.html.render|safe}}
+      <div id="map-container" style="width: 100%; height: 200px;">
+           the header of the map can be put inside a div to control the size
+        {{map.html.render|safe}}
+      </div>
     <script>
       {{map.script.render|safe}}
-    </script>   
+    </script>
   </body>
+</html> !-->
+{% load static %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard con Mappa e Login</title>
+    <link rel="stylesheet" href="{% static 'default.css' %}">
+    {{ map.header.render|safe }}
+</head>
+<body>
+    <header class="header">
+        <h1>Dashboard Mappa</h1>
+        <form class="login-form">
+            <input type="text" name="username" placeholder="Username">
+            <input type="password" name="password" placeholder="Password">
+            <button type="submit">Login</button>
+        </form>
+    </header>
+
+    <div class="main-content">
+        <div class="map-container-wrapper">
+            <h2>La Tua Mappa Interattiva</h2>
+            <div id="map-container">
+                {{ map.html.render|safe }}
+            </div>
+        </div>
+    </div>
+    <script>{{ map.script.render|safe }}</script>
+</body>
 </html>

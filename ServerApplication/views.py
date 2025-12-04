@@ -18,25 +18,25 @@ class MapView(TemplateView):
         target_url = "/ServerApplication"
         popup_html = f'''
             <b>Coordinate:</b> 40.417, -3.70<br>
-            <a href="{target_url}" target="_blank">Clicca qui per i dettagli!</a>
+            <a href="{target_url}" target="_blank">Clicca qui per la lista di prodotti!</a>
             <hr>
-            Integrazione di folium con django
+            dispenser allìinterno del campus universitario DIEF UNIMORE
         '''
 
         # Make the map
         map = folium.Map(
-            location=[40.416, -3.70],
-            zoom_start=11,
+            location=[44.64551, 10.92530],
+            zoom_start=14,
             tiles='OpenStreetMap')
 
         map.add_to(figure)
 
         # Add a Marker
         folium.Marker(
-            location=[40.417, -3.70],
+            location=[44.629335, 10.948308],
             popup=popup_html,
-            tooltip='folium and django',
-            icon=folium.Icon(icon='fa-coffee', prefix='fa')
+            tooltip='dispenser DIEF',
+            icon=folium.Icon(icon='fa-heart', prefix='fa', color='green')
         ).add_to(map)
 
         # Render and send to template
