@@ -20,6 +20,6 @@ class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = SerProduct
 
-class ProductInDistributorViewSet(viewsets.ModelViewSet):
+class ProductsInDistributorViewSet(viewsets.ModelViewSet):
     queryset = ProductsInDistributor.objects.all()
-    serializer_class = SerProductInDistributor
+    serializer_class = SerProductsInDistributor

@@ -7,7 +7,7 @@ router = DefaultRouter()
 router.register(r'distributor', api.DistributorViewSet)
 router.register(r'product', api.ProductViewSet)
 router.register(r'user', api.UserViewSet)
-router.register(r'productInDistributor', api.ProductInDistributorViewSet)
+router.register(r'productsInDistributor', api.ProductsInDistributorViewSet)
 
 urlpatterns = [
     path('', views.index, name='index'),

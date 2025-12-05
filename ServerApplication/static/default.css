@@ -117,3 +117,56 @@ body {
         /* Stili Folium generati - assicurati che non vengano sovrascritti dai tuoi stili */
         /* Questi vengono inseriti automaticamente da {{ map.header.render|safe }} */
         /* e {{ map.script.render|safe }} */
+
+/* test, perchè sto impazzendo con CSS*/
+.distributors-menu ul
+{
+    list-style: none;
+    padding: 0;
+    margin: 3px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.distributors-menu h2
+{
+    color: #fff;
+    text-align: center;
+    background-color: #333;
+    margin: 5px 3px 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.distributors-menu ul li
+{
+    position: relative;
+    display: list-item;
+    padding: 8px;
+    margin: 8px;
+    background-color: #333;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.distributors-menu ul li .submenu
+{
+    position: relative;
+    display: list-item;
+    padding: 8px;
+    margin: 8px;
+    background-color: rgba(81, 142, 62, 0.35);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.distributors-menu ul li p
+{
+    color: white;
+    text-decoration: none;
+    padding-top: 3px;
+    display: block;
+    border-radius: 8px;
+}

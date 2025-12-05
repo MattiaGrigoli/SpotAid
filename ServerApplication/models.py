@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.core.management.commands.makemessages import STATUS_OK
 from django.db import models
 from rest_framework import serializers
@@ -13,16 +15,16 @@ class Distributor(models.Model):
     status = models.CharField(max_length=200, choices=Status.choices)
     #temporary
     address = models.CharField(max_length=200) #the address and...
-    position = models.CharField(max_length = 200) #the geolocalization of the distributor
+    # the geolocalization of the distributor
+    position_x = models.FloatField(default=0.0)
+    position_y = models.FloatField(default=0.0)
 
     def __str__(self):
-        return ('\nID: ' + str(self.id) + '\nStatus: ' + self.status + '\nAddress: ' + self.address +
-                '\nPosition: ' + self.position)
+        return '\nID: ' + str(self.id) + '\nStatus: ' + self.status + '\nAddress: ' + self.address
 
     def to_dict(self):
         address = self.address if self.address else None
-        position = self.position if self.position else None
-        return {'id': self.id, 'status': self.status, 'address': address, 'position': self.position}
+        return {'id': self.id, 'status': self.status, 'address': address}
 ##
 
 class Product(models.Model):
@@ -44,6 +46,14 @@ class ProductsInDistributor(models.Model):
     def to_dict(self):
         quantity = self.quantity if self.quantity > 0 else 0
         return {'id_distributor': self.id_distributor.id, 'id_product': self.id_product.id, 'quantity': quantity}
+
+class Selling(models.Model):
+    id_distributor = models.ForeignKey(Distributor, on_delete = models.CASCADE, null = False)
+    id_product = models.ForeignKey(Product, on_delete = models.CASCADE, null = False)
+    date_time = models.DateTimeField(default = datetime.now())
+
+    def to_dict(self):
+        return {'id_distributor': self.id_distributor.id, 'id_product': self.id_product.id}
 
 # if exists then pharmacy, otherwise normal user
 class User(models.Model):
@@ -70,7 +80,12 @@ class SerUser(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = "__all__"
-class SerProductInDistributor(serializers.ModelSerializer):
+class SerProductsInDistributor(serializers.ModelSerializer):
     class Meta:
         model = ProductsInDistributor
+        fields = "__all__"
+
+class SerSelling(serializers.ModelSerializer):
+    class Meta:
+        model = Selling
         fields = "__all__"
