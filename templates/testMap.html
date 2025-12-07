@@ -28,11 +28,16 @@
 <body>
     <header class="header">
         <h1>Dashboard Mappa</h1>
-        <form class="login-form" method="POST">
+        {% if user.is_authenticated %}
+            <a href="{% url 'ServerApplication:logoutGET' %}">logout</a>
+        {% else %}
+        <form class="login-form" method="POST" action="{% url 'ServerApplication:loginPOST' %}">
+            {%  csrf_token %}
             <input type="text" name="username" placeholder="Username">
             <input type="password" name="password" placeholder="Password">
             <button type="submit">Login</button>
         </form>
+        {% endif %}
     </header>
 
     <div class="main-content">

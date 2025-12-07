@@ -1,7 +1,9 @@
+from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.views.generic import TemplateView
 from ServerApplication.models import *
+from django.contrib import messages
 import folium
 
 
@@ -65,3 +67,19 @@ class MapView(TemplateView):
         # Render and send to template
         figure.render()
         return {"map": figure, "op_distributors": op_distributors, "products_inside": av_products, "product_list": product_list}
+
+def loginPOST(request):
+    if request.method == "POST":
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('ServerApplication:testMap')
+    else:
+        messages.error(request, "wrong HTTP method")
+        return render(request, "testMap.html")
+
+def logoutGET(request):
+    logout(request)
+    return redirect('ServerApplication:testMap')
