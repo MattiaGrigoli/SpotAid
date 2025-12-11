@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>lista prodotti</title>
+</head>
+<body>
+<!-- add every form for modify, use API links for actions? !-->
+<div class="main-content">
+    <div class="distributors-menu">
+        <table>
+            <tr>
+                <th>nome prodotto</th>
+                <th>prezzo</th>
+                <th>quantità</th>
+                <!-- logged user side !-->
+                {% if user.is_authenticated %}
+                <th>rimuovi prodotto</th>
+                {% endif %}
+            </tr>
+        {% for product in products%}
+        <tr>
+            <td>{{ product.name }}</td>
+            <td>{{ product.price }}</td>
+            {% if user.is_authenticated %} <!-- normal text or modifiable textfield !-->
+            {% else %}
+            {% endif %}
+            {%  if user.is_authenticated %}
+                <td></td> <!-- remove button !-->
+            {% endif %}
+        </tr>
+        {% endfor %}
+        {% if user.is_authenticated %}
+        <!-- add a simple javascript or form for adding other products inside the dispenser? !-->
+        {% endif %}
+        </table>
+    </div>
+</div>
+</body>
+</html>
