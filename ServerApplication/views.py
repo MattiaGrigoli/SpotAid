@@ -21,12 +21,6 @@ class MapView(TemplateView):
 
         figure = folium.Figure()
         target_url = "/ServerApplication"
-        popup_html = f'''
-            <b>Coordinate:</b> 40.417, -3.70<br>
-            <a href="{target_url}" target="_blank">Clicca qui per la lista di prodotti!</a>
-            <hr>
-            dispenser all'interno del campus universitario DIEF UNIMORE
-        '''
 
         # Make the map
         map = folium.Map(
@@ -45,6 +39,14 @@ class MapView(TemplateView):
 
         # Adding a marker for each distributor
         for distributor in temp:
+
+            popup_html = f'''
+                <b>Coordinate:</b> 40.417, -3.70<br>
+                <a href="{target_url}/{distributor.id}" >Clicca qui per la lista di prodotti!</a>
+                <hr>
+                dispenser all'interno del campus universitario DIEF UNIMORE
+            '''
+
             if distributor.status == '1':
                 # Add a Marker
                 folium.Marker(
@@ -67,6 +69,21 @@ class MapView(TemplateView):
         # Render and send to template
         figure.render()
         return {"map": figure, "op_distributors": op_distributors, "products_inside": av_products, "product_list": product_list}
+
+# Used to get all the available products inside a specific distributor
+def this_distributor(request, distributor_id):
+    all_products_in_distributors = ProductsInDistributor.objects.all()
+    _temp = list(all_products_in_distributors)
+    av_products = list()    # To save the available products
+
+    # Searches for all the available products (quantity>0) inside the specific distributor
+    for pid in _temp:
+        if pid.quantity > 0 and pid.id_distributor.id == distributor_id:
+            av_products.append(Product.objects.get(id=pid.id_product.id))
+
+    context = {"products_inside": av_products}
+    return context
+
 
 def loginPOST(request):
     if request.method == "POST":
