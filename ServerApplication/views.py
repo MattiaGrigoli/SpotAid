@@ -61,6 +61,7 @@ class MapView(TemplateView):
         all_products_in_distributors = ProductsInDistributor.objects.all()
         _temp = list(all_products_in_distributors)
         av_products = list()
+
         for pid in _temp:
             if pid.quantity > 0:
                 av_products.append(pid)
