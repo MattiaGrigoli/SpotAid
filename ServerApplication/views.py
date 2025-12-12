@@ -1,3 +1,4 @@
+from http.client import responses
 from itertools import product
 
 from django.contrib.auth import authenticate, login, logout
@@ -74,7 +75,7 @@ class MapView(TemplateView):
         return {"map": figure, "op_distributors": op_distributors, "products_inside": av_products, "product_list": product_list}
 
 # Used to get all the available products inside a specific distributor
-def this_distributor(request, distributor_id):
+'''def this_distributor(request, distributor_id):
     all_products_in_distributors = ProductsInDistributor.objects.all()
     _temp = list(all_products_in_distributors)
     av_products = list()    # To save the available products
@@ -85,7 +86,7 @@ def this_distributor(request, distributor_id):
             av_products.append(Product.objects.get(id=pid.id_product.id))
 
     context = {"products_inside": av_products}
-    return context
+    return context'''
 
 def loginPOST(request):
     if request.method == "POST":
@@ -108,11 +109,41 @@ def listProduct(request, distributor_id):
     products_in_distributor = ProductsInDistributor.objects.select_related(
         'id_distributor',
         'id_product'
-    ).filter(id_distributor_id=distributor_id).all()                           # Fixed
+    ).filter(id_distributor=distributor_id).all()                           # Fixed
     products = Product.objects.all()
 
     context = {
         'prod_dist_list': products_in_distributor,
-        'products': products
+        'products': products,
+        'id_distributor': distributor_id
     }
     return render(request, 'productList.html', context)
+
+def updateCount(request):
+    id_distributor = request.POST.get('id_distributor')
+    id_product = request.POST.get('id_product')
+    quantity = request.POST.get('quantity')
+    item = ProductsInDistributor.objects.get(id_distributor=id_distributor, id_product=id_product)
+    item.quantity = quantity
+    item.save()
+    response = listProduct(request, id_distributor)
+    return response
+
+def removeCount(request):
+    id_distributor = request.POST.get('id_distributor')
+    id_product = request.POST.get('id_product')
+    item = ProductsInDistributor.objects.get(id_distributor=id_distributor, id_product=id_product)
+    item.delete()
+    response = listProduct(request, id_distributor)
+    return response
+
+def addCount(request):
+    id_distributor = request.POST.get('id_distributor')
+    id_product = request.POST.get('product')
+    quantity = request.POST.get('quantity')
+    distributor = Distributor.objects.get(id=id_distributor)
+    product = Product.objects.get(id=id_product)
+    item = ProductsInDistributor(id_distributor=distributor, id_product=product, quantity=quantity)
+    item.save()
+    response = listProduct(request, id_distributor)
+    return response

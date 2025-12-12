@@ -43,6 +43,9 @@ class ProductsInDistributor(models.Model):
     id_product = models.ForeignKey(Product, on_delete = models.CASCADE, null = False)
     quantity = models.IntegerField()
 
+    class Meta:
+        unique_together = ('id_distributor', 'id_product')
+
     def to_dict(self):
         quantity = self.quantity if self.quantity > 0 else 0
         return {'id_distributor': self.id_distributor.id, 'id_product': self.id_product.id, 'quantity': quantity}

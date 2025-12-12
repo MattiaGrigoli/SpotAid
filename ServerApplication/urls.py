@@ -19,5 +19,8 @@ urlpatterns = [
     path('logoutGET', views.logoutGET, name='logoutGET'),
     #path('api/', api.indexAPI, name='indexAPI'),
     path('api/', include(router.urls)),
-    path('<int:distributor_id>', views.listProduct, name = 'Lista dei prodotti'),
+    path('<int:distributor_id>', views.listProduct, name = 'List'),
+    path('updateCount', views.updateCount, name = 'updateCount'),
+    path('removeCount', views.removeCount, name = 'removeCount'),
+    path('addCount', views.addCount, name = 'addCount'),
 ]

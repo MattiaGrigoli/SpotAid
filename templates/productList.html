@@ -26,7 +26,7 @@
             <td>€{{ list.id_product.price }}</td>
             {% if user.is_authenticated %} 
                 <td>
-                    <form method="POST" action="{% url '' %}">
+                    <form method="POST" action="{% url 'ServerApplication:updateCount' %}">
                         {%  csrf_token %}
                         <input type="hidden" name="id_product" value="{{ list.id_product.id }}">
                         <input type="hidden" name="id_distributor" value="{{ list.id_distributor.id }}">
@@ -38,18 +38,20 @@
                 <td> {{ list.quantity }}</td>
             {% endif %}
             {%  if user.is_authenticated %}
-                 <form method="POST" action="{% url '' %}">
+                <td>
+                 <form method="POST" action="{% url 'ServerApplication:removeCount' %}">
                  {%  csrf_token %}
                      <input type="hidden" name="id_product" value="{{ list.id_product.id }}">
                      <input type="hidden" name="id_distributor" value="{{ list.id_distributor.id }}">
                     <button type="submit">Elimina</button>
                  </form>
+                </td>
             {% endif %}
         </tr>
         {% endfor %}
         {% if user.is_authenticated %}
-        <!-- add a simple javascript or form for adding other products inside the dispenser? !-->
-            <form method="POST" action="{% url '' %}">
+            <form method="POST" action="{% url 'ServerApplication:addCount' %}">
+            <input type="hidden" name="id_distributor" value="{{ id_distributor }}">
             {%  csrf_token %}
                 <td>
                     <select name="product" id="product" required>
@@ -60,7 +62,7 @@
                 </td>
                 <td></td> <!-- prezzo !-->
                 <td>
-                    <input type="number" name="price">
+                    <input type="number" name="quantity">
                 </td>
                 <td>
                     <button type="submit">Aggiungi</button>
