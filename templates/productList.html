@@ -4,9 +4,15 @@
 <head>
     <meta charset="UTF-8">
     <title>lista prodotti</title>
-    <link rel="stylesheet" href="{% static 'default.css' %}">
+    <link rel="stylesheet" href="{% static 'list.css' %}">
 </head>
 <body>
+<header class="page-header">
+    <h1>Lista prodotti disponibili</h1>
+    <nav>
+        <a href="{% url 'ServerApplication:testMap' %}" class="home-link">homepage</a>
+    </nav>
+</header>
 <!-- add every form for modify, use API links for actions? !-->
 <div class="main-content">
     <div class="distributors-menu">
@@ -25,7 +31,7 @@
             <td>{{ list.id_product.name }}</td>
             <td>€{{ list.id_product.price }}</td>
             {% if user.is_authenticated %} 
-                <td>
+                <td class="quantity-cell">
                     <form method="POST" action="{% url 'ServerApplication:updateCount' %}">
                         {%  csrf_token %}
                         <input type="hidden" name="id_product" value="{{ list.id_product.id }}">
@@ -43,13 +49,14 @@
                  {%  csrf_token %}
                      <input type="hidden" name="id_product" value="{{ list.id_product.id }}">
                      <input type="hidden" name="id_distributor" value="{{ list.id_distributor.id }}">
-                    <button type="submit">Elimina</button>
+                    <button type="submit" class="delete-button">Elimina</button>
                  </form>
                 </td>
             {% endif %}
         </tr>
         {% endfor %}
         {% if user.is_authenticated %}
+            <tr class="add-row">
             <form method="POST" action="{% url 'ServerApplication:addCount' %}">
             <input type="hidden" name="id_distributor" value="{{ id_distributor }}">
             {%  csrf_token %}
@@ -62,12 +69,13 @@
                 </td>
                 <td></td> <!-- prezzo !-->
                 <td>
-                    <input type="number" name="quantity">
+                    <input type="number" name="quantity" required min="1" placeholder="quantità">
                 </td>
                 <td>
-                    <button type="submit">Aggiungi</button>
+                    <button type="submit" class="add-button">Aggiungi</button>
                 </td>
             </form>
+            </tr>
         {% endif %}
         </table>
     </div>

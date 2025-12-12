@@ -54,21 +54,6 @@
                     {% for d in op_distributors %}
                         <li>
                             <h2> {{ d.address }} </h2>
-                            {% if products_inside %}
-                                <ul>
-                                {% for pi in products_inside %}
-                                    {% if d.id == pi.id_distributor.id %}
-                                        {% for pl in product_list %}
-                                            {% if pl.id == pi.id_product.id %}
-                                                <li class="submenu"> <p> {{ pl.name }}: €{{ pl.price }}, in questa quantità: {{ pi.quantity }} </p> </li>
-                                            {% endif %}
-                                        {% endfor %}
-                                    {% endif %}
-                                {% endfor %}
-                                </ul>
-                            {% else %}
-                                <li> <p> Nessun prodotto trovato. </p> </li>
-                            {% endif %}
                     {% endfor %}
                 </ul>
             {% else %}
