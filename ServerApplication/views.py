@@ -87,7 +87,6 @@ def this_distributor(request, distributor_id):
     context = {"products_inside": av_products}
     return context
 
-
 def loginPOST(request):
     if request.method == "POST":
         username = request.POST['username']
@@ -96,6 +95,7 @@ def loginPOST(request):
         if user is not None:
             login(request, user)
             return redirect('ServerApplication:testMap')
+
     else:
         messages.error(request, "wrong HTTP method")
         return render(request, "testMap.html")
@@ -108,7 +108,7 @@ def listProduct(request, distributor_id):
     products_in_distributor = ProductsInDistributor.objects.select_related(
         'id_distributor',
         'id_product'
-    ).filter(distributor_id=distributor_id).all()
+    ).filter(id_distributor_id=distributor_id).all()                           # Fixed
     products = Product.objects.all()
 
     context = {

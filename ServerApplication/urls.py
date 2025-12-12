@@ -3,6 +3,8 @@ from . import views
 from . import api
 from rest_framework.routers import DefaultRouter
 
+from .models import Distributor
+
 router = DefaultRouter()
 router.register(r'distributor', api.DistributorViewSet)
 router.register(r'product', api.ProductViewSet)
@@ -17,4 +19,5 @@ urlpatterns = [
     path('logoutGET', views.logoutGET, name='logoutGET'),
     #path('api/', api.indexAPI, name='indexAPI'),
     path('api/', include(router.urls)),
+    path('<int:distributor_id>', views.listProduct, name = 'Lista dei prodotti'),
 ]

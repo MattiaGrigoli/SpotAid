@@ -128,6 +128,21 @@ body {
     border-radius: 8px;
 }
 
+/* These do not work for some reason? */
+.distributors-menu table
+{
+    table-layout: fixed;
+    width: 90%;
+    margin: 10px auto;
+    border-collapse: collapse;
+}
+
+.distributors-menu th, td
+{
+    padding: 2px;
+}
+/**************************************/
+
 .distributors-menu h2
 {
     color: #fff;

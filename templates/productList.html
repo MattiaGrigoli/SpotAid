@@ -1,8 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>lista prodotti</title>
+    <link rel="stylesheet" href="{% static 'default.css' %}">
 </head>
 <body>
 <!-- add every form for modify, use API links for actions? !-->
@@ -18,10 +20,10 @@
                 <th>rimuovi prodotto</th>
                 {% endif %}
             </tr>
-        {% for list in prod_dist_list%}
+        {% for list in prod_dist_list %}
         <tr>
             <td>{{ list.id_product.name }}</td>
-            <td>{{ list_id_product.price }}€</td>
+            <td>€{{ list.id_product.price }}</td>
             {% if user.is_authenticated %} 
                 <td>
                     <form method="POST" action="{% url '' %}">
