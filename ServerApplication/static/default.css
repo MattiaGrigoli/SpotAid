@@ -141,6 +141,21 @@ body {
 {
     padding: 2px;
 }
+
+.home-link {
+    color: #40ff00; /* Colore verde chiaro per il link */
+    text-decoration: none;
+    font-weight: bold;
+    padding: 5px 10px;
+    border: 1px solid #40ff00;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.home-link:hover {
+    background-color: #00b303;
+    color: #fff;
+}
 /**************************************/
 
 .distributors-menu h2
