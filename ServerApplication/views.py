@@ -1,3 +1,5 @@
+from itertools import product
+
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -101,3 +103,16 @@ def loginPOST(request):
 def logoutGET(request):
     logout(request)
     return redirect('ServerApplication:testMap')
+
+def listProduct(request, distributor_id):
+    products_in_distributor = ProductsInDistributor.objects.select_related(
+        'id_distributor',
+        'id_product'
+    ).filter(distributor_id=distributor_id).all()
+    products = Product.objects.all()
+
+    context = {
+        'prod_dist_list': products_in_distributor,
+        'products': products
+    }
+    return render(request, 'productList.html', context)

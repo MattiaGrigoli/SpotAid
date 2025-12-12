@@ -18,20 +18,52 @@
                 <th>rimuovi prodotto</th>
                 {% endif %}
             </tr>
-        {% for product in products%}
+        {% for list in prod_dist_list%}
         <tr>
-            <td>{{ product.name }}</td>
-            <td>{{ product.price }}</td>
-            {% if user.is_authenticated %} <!-- normal text or modifiable textfield !-->
+            <td>{{ list.id_product.name }}</td>
+            <td>{{ list_id_product.price }}€</td>
+            {% if user.is_authenticated %} 
+                <td>
+                    <form method="POST" action="{% url '' %}">
+                        {%  csrf_token %}
+                        <input type="hidden" name="id_product" value="{{ list.id_product.id }}">
+                        <input type="hidden" name="id_distributor" value="{{ list.id_distributor.id }}">
+                        <input type="number" name="quantity" placeholder="{{ list.quantity }}">
+                        <button type="submit" hidden>Aggiorna</button>
+                    </form>
+                </td>
             {% else %}
+                <td> {{ list.quantity }}</td>
             {% endif %}
             {%  if user.is_authenticated %}
-                <td></td> <!-- remove button !-->
+                 <form method="POST" action="{% url '' %}">
+                 {%  csrf_token %}
+                     <input type="hidden" name="id_product" value="{{ list.id_product.id }}">
+                     <input type="hidden" name="id_distributor" value="{{ list.id_distributor.id }}">
+                    <button type="submit">Elimina</button>
+                 </form>
             {% endif %}
         </tr>
         {% endfor %}
         {% if user.is_authenticated %}
         <!-- add a simple javascript or form for adding other products inside the dispenser? !-->
+            <form method="POST" action="{% url '' %}">
+            {%  csrf_token %}
+                <td>
+                    <select name="product" id="product" required>
+                        {% for product in products %}
+                            <option value="{{ product.id }}">{{ product.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td></td> <!-- prezzo !-->
+                <td>
+                    <input type="number" name="price">
+                </td>
+                <td>
+                    <button type="submit">Aggiungi</button>
+                </td>
+            </form>
         {% endif %}
         </table>
     </div>
