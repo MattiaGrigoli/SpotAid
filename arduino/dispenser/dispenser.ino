@@ -1,17 +1,10 @@
 #include <DHT.h>
 #include <DHT_U.h>
-
 #include <dht_nonblocking.h>
-
 #include <LoRa_E220.h>
-
 #include <pitches.h>
-//#include "LoRa_E220.h"
 #include <LiquidCrystal_I2C.h>
-//#include <SR04.h>
 #include <pgmspace.h>
-//#include "Arduino.h"
-
 #include <Wire.h>
 
 //IR memory optimizations
@@ -34,8 +27,8 @@
   #define DEBUG_PRINTLN(x)
 #endif
 
+//hardware constants
 #define DHTTYPE DHT11
-
 #define DHTPIN 18
 #define IRPIN 4 //infrared
 #define MICPIN 34
@@ -48,23 +41,62 @@
 #define LORAAUX 15
 #define LORAM0 26
 #define LORAM1 27
-
 #define BUTTON 35
 
 // I2C display A4 e A5
 LiquidCrystal_I2C lcd(0x27, 16, 2);
-
 const uint16_t melody[] PROGMEM = {
   NOTE_C5, NOTE_D5, NOTE_E5, NOTE_F5, NOTE_G5, NOTE_A5, NOTE_B5, NOTE_C6};
 uint8_t duration = 500;
-
-
 IRrecv irrecv(IRPIN);
 uint32_t last_decodedRawData = 0;
-
 LoRa_E220 e220ttl(&Serial2, LORAAUX, LORAM0, LORAM1);
-
 DHT dht (DHTPIN, DHTTYPE);
+
+//logic constants
+#define TEMPMIN -7
+#define TEMPMAX 30
+#define HUMMIN 5
+#define HUMMAX 85
+#define MICMAX 1000 //ESP max 4095
+#define IDMACHINE 1 //change for every dispenser
+
+typedef enum 
+{
+  IDLE,
+  EROGATION,
+  ALERT
+} State;
+
+typedef enum
+{
+  POWER,
+  FUNC,
+  VOLUP,
+  FBACK,
+  PAUSE,
+  FFORW,
+  DOWN,
+  VOLDOWN,
+  UP,
+  EQ,
+  ST,
+  ZERO,
+  ONE,
+  TWO,
+  THREE,
+  FOUR,
+  FIVE,
+  SIX,
+  SEVEN,
+  EIGHT,
+  NINE,
+  ERROR,
+  NONE
+} IRButton;
+
+State state;
+IRButton button;
 
 void setup() {
   // put your setup code here, to run once:
@@ -90,8 +122,6 @@ void setup() {
   Serial2.begin(9600, SERIAL_8N1, LORATX, LORARX);
   delay(500);
   e220ttl.begin();
-
-
 
 #ifdef DEBUG_ENABLE
   //TestErogate();
@@ -124,6 +154,91 @@ void loop() {
     irrecv.resume(); // receive the next value
   }*/
 #endif
+}
+
+IRButton getButtonIR() // takes action based on IR code received
+{
+  IRButton button;
+  if(irrecv.decode())
+  {
+    // Check if it is a repeat IR code 
+    if (irrecv.decodedIRData.flags)
+    {
+      //set the current decodedRawData to the last decodedRawData 
+      irrecv.decodedIRData.decodedRawData = last_decodedRawData;
+      Serial.println(F("REPEAT!"));
+    } else
+    {
+      //output the IR code on the serial monitor
+      Serial.print(F("IR code:0x"));
+      Serial.println(irrecv.decodedIRData.decodedRawData, HEX);
+    }
+    //map the IR code to the remote key
+    switch (irrecv.decodedIRData.decodedRawData)
+    {
+      case 0xBA45FF00: button = POWER; break;
+      case 0xB847FF00: button = FUNC; break;
+      case 0xB946FF00: button = VOLUP; break;
+      case 0xBB44FF00: button = FBACK; break;
+      case 0xBF40FF00: button = PAUSE; break;
+      case 0xBC43FF00: button = FFORW; break;
+      case 0xF807FF00: button = DOWN; break;
+      case 0xEA15FF00: button = VOLDOWN; break;
+      case 0xF609FF00: button = UP; break;
+      case 0xE619FF00: button = EQ; break;
+      case 0xF20DFF00: button = ST; break;
+      case 0xE916FF00: button = ZERO; break;
+      case 0xF30CFF00: button = ONE; break;
+      case 0xE718FF00: button = TWO; break;
+      case 0xA15EFF00: button = THREE; break;
+      case 0xF708FF00: button = FOUR; break;
+      case 0xE31CFF00: button = FIVE; break;
+      case 0xA55AFF00: button = SIX; break;
+      case 0xBD42FF00: button = SEVEN; break;
+      case 0xAD52FF00: button = EIGHT; break;
+      case 0xB54AFF00: button = NINE; break;
+      default:
+        Serial.println(F("ERROR IRButton"));
+        button = ERROR;
+    }// End Case
+    //store the last decodedRawData
+    last_decodedRawData = irrecv.decodedIRData.decodedRawData;
+    //delay(500); // Do not get immediate repeat
+    irrecv.resume();
+  }else
+  {
+    button = NONE;
+  }
+  return button;
+} //END translateIR
+
+//initial routine at beginning of loop
+State routine()
+{
+  State status;
+  float temperature = dht.readTemperature();
+  float humidity = dht.readHumidity();
+  if(temperature > TEMPMAX || temperature < TEMPMIN)
+  {
+    status = ALERT;
+    //immediately return for emergency
+    return status
+  }else if (humidity > HUMMAX || humidity < HUMMIN)
+  {
+    status = ALERT;
+    return status;
+  }
+  if (readMic() > MICMAX)
+  {
+    status = ALERT;
+    return status;
+  }
+  //TODO erogating
+}
+
+int readMic()
+{
+  return analogRead(MICPIN);
 }
 
 #ifdef DEBUG_ENABLE
