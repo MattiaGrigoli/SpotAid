@@ -1,9 +1,18 @@
-#include <pitches.h>
+#include <DHT.h>
+#include <DHT_U.h>
+
 #include <dht_nonblocking.h>
-#include "LoRa_E220.h"
+
+#include <LoRa_E220.h>
+
+#include <pitches.h>
+//#include "LoRa_E220.h"
 #include <LiquidCrystal_I2C.h>
-#include <SR04.h>
-#include <avr/pgmspace.h>
+//#include <SR04.h>
+#include <pgmspace.h>
+//#include "Arduino.h"
+
+#include <Wire.h>
 
 //IR memory optimizations
 #define RAW_BUFFER_LENGHT 50
@@ -11,7 +20,7 @@
 #define DECODE_NEC
 #define NO_LED_FEEDBACK_CODE
 
-#include <IRremote.h>
+#include <IRremote.hpp>
 
 //to enable and disable DEBUG
 #define DEBUG_ENABLE
@@ -25,18 +34,22 @@
   #define DEBUG_PRINTLN(x)
 #endif
 
-#define DHTPIN 2
 #define DHTTYPE DHT11
-#define IRPIN 11 //infrared
-#define MICPIN A0
-#define BUZPIN 8
-#define DCENABLE 5
-#define DCDIRA 3
-#define DCDIRB 4
-#define USECHO 6 //ultrasuond
-#define USTRIG 7 //ultrasound
-#define LORATX 9
-#define LORARX 10
+
+#define DHTPIN 18
+#define IRPIN 4 //infrared
+#define MICPIN 34
+#define BUZPIN 25
+#define DCDIRA 14
+#define DCDIRB 13
+//serial2
+#define LORATX 16 //tx module side
+#define LORARX 17 //rc module side
+#define LORAAUX 15
+#define LORAM0 26
+#define LORAM1 27
+
+#define BUTTON 35
 
 // I2C display A4 e A5
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -45,20 +58,20 @@ const uint16_t melody[] PROGMEM = {
   NOTE_C5, NOTE_D5, NOTE_E5, NOTE_F5, NOTE_G5, NOTE_A5, NOTE_B5, NOTE_C6};
 uint8_t duration = 500;
 
-SR04 sr04 = SR04(USECHO, USTRIG);
 
 IRrecv irrecv(IRPIN);
 uint32_t last_decodedRawData = 0;
 
-LoRa_E220 e220ttl(LORARX, LORATX);
+LoRa_E220 e220ttl(&Serial2, LORAAUX, LORAM0, LORAM1);
+
+DHT dht (DHTPIN, DHTTYPE);
 
 void setup() {
   // put your setup code here, to run once:
+  Serial.begin(115200);
   DEBUG_PRINTLN(F("--- DEBUG ENABLED ---"));
-  Serial.begin(9600);
 
   DEBUG_PRINTLN(F("initialize DC motor"));
-  pinMode(DCENABLE, OUTPUT);
   pinMode(DCDIRA, OUTPUT);
   pinMode(DCDIRB, OUTPUT);
 
@@ -70,23 +83,33 @@ void setup() {
   DEBUG_PRINTLN(F("Initialize IR receiver"));
   irrecv.enableIRIn();
 
+  DEBUG_PRINTLN(F("initialize DHT module module"));
+  dht.begin();
+
   DEBUG_PRINTLN(F("initialize lora module"));
+  Serial2.begin(9600, SERIAL_8N1, LORATX, LORARX);
+  delay(500);
   e220ttl.begin();
+
+
 
 #ifdef DEBUG_ENABLE
   //TestErogate();
-  //testLcd();
+  testLcd();
+  testDHT();
   //testBuz();
   //testUR();
+  //e220ttl.resetModule();
   ResponseStructContainer c;
   c = e220ttl.getConfiguration();
   // It's important get configuration pointer before all other operation
   Configuration configuration = *(Configuration*) c.data;
   Serial.println(c.status.getResponseDescription());
   Serial.println(c.status.code);
-
+  
   printParameters(configuration);
   c.close();
+  //scanAddress();
 #endif
 
 }
@@ -106,12 +129,10 @@ void loop() {
 #ifdef DEBUG_ENABLE
 void TestErogate(){
   DEBUG_PRINTLN(F("starting rotating"));
-  analogWrite(DCENABLE, 180);
   digitalWrite(DCDIRA, HIGH);
   digitalWrite(DCDIRB, LOW);
   delay(3000);
   DEBUG_PRINTLN(F("stopping rotating"));
-  digitalWrite(DCENABLE,LOW);
 }
 
 void testLcd(){
@@ -125,9 +146,6 @@ void testBuz(){
   tone(BUZPIN, pgm_read_word_near(&melody[0]), duration);
 }
 
-void testUR(){
-  DEBUG_PRINTLN(sr04.Distance()); //cm
-}
 
 //is it really working?
 void testMic(){
@@ -205,5 +223,49 @@ void printParameters(struct Configuration configuration) {
   Serial.print(F("TransModeFixedTrans: "));  Serial.print(configuration.TRANSMISSION_MODE.fixedTransmission, BIN);Serial.print(F(" -> ")); Serial.println(configuration.TRANSMISSION_MODE.getFixedTransmissionDescription());
 
   Serial.println(F("----------------------------------------"));
+}
+
+void testDHT()
+{
+  // read humidity
+  float humi  = dht.readHumidity();
+  // read temperature in Celsius
+  float tempC = dht.readTemperature();
+  DEBUG_PRINT(F("humidity: ")); DEBUG_PRINTLN(humi);
+  DEBUG_PRINT(F("temperatue: ")); DEBUG_PRINTLN(tempC);
+}
+
+void scanAddress()
+{
+  byte error, address;
+  int nDevices;
+  Serial.println("Scanning...");
+  nDevices = 0;
+  for(address = 1; address < 127; address++ ) {
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+    if (error == 0) {
+      Serial.print("I2C device found at address 0x");
+      if (address<16) {
+        Serial.print("0");
+      }
+      Serial.println(address,HEX);
+      nDevices++;
+    }
+    else if (error==4) {
+      Serial.print("Unknow error at address 0x");
+      if (address<16) {
+        Serial.print("0");
+      }
+      Serial.println(address,HEX);
+    }    
+  }
+  if (nDevices == 0) {
+    Serial.println("No I2C devices found\n");
+  }
+  else {
+    Serial.println("done\n");
+  }
+  delay(5000);
 }
 #endif
