@@ -7,6 +7,10 @@
 #include <pgmspace.h>
 #include <Wire.h>
 
+//From https://iotdesignpro.com/projects/wireless-communication-between-arduino-and-raspberry-pi-using-lora-module-sx1278
+// used for SPI communication between arduino and LoRa modules
+#include <SPI.h>
+
 //IR memory optimizations
 #define RAW_BUFFER_LENGHT 50
 #define EXCLUDE_EXOTIC_PROTOCOLS
@@ -14,6 +18,12 @@
 #define NO_LED_FEEDBACK_CODE
 
 #include <IRremote.hpp>
+
+// Receiver address & channel
+uint8_t TARGET_ADDH = 0x00;
+uint8_t TARGET_ADDL = 0x03;
+uint8_t TARGET_CHANNEL = 23;
+
 
 //to enable and disable DEBUG
 #define DEBUG_ENABLE
@@ -154,6 +164,56 @@ void loop() {
     irrecv.resume(); // receive the next value
   }*/
 #endif
+  // getting the data to send through LoRa
+
+  State status = routine();             // to check if the dispenser is fine
+  String _status_ = String(status);
+  IRButton button = getButtonIR(); // to check if it has been received an input from the remote
+  String _button_ = String(button);
+  String msg;
+
+  if(status == ALERT)          //if the Status is on ALERT
+  {
+    Serial.println("!ALERT!");
+    msg = _status_;
+
+    ResponseStatus rs = e220ttl.sendFixedMessage
+    (
+      TARGET_ADDH,
+      TARGET_ADDL,
+      TARGET_CHANNEL,
+      msg
+    )
+  }
+  else if(status == IDLE)
+  {
+    switch(button)
+    {
+      case ZERO: break;
+      case ONE: break;
+      case TWO: break;
+      case THREE: break;
+      case FOUR: break;
+      case FIVE: break;
+      case SIX: break;
+      case SEVEN: break;
+      case EIGHT: break;
+      case NINE: break;
+      default: Serial.println("Nothing to send."); delay(2000); return; //if the input received isn't a number
+    }
+
+    msg = _status_ + " " + _button_;
+    ResponseStatus rs = e220ttl.sendFixedMessage
+    (
+      TARGET_ADDH,
+      TARGET_ADDL,
+      TARGET_CHANNEL,
+      msg
+    )
+  }
+  //...
+  delay(10000);
+  return;
 }
 
 IRButton getButtonIR() // takes action based on IR code received
@@ -215,7 +275,7 @@ IRButton getButtonIR() // takes action based on IR code received
 //initial routine at beginning of loop
 State routine()
 {
-  State status;
+  State status = IDLE;
   float temperature = dht.readTemperature();
   float humidity = dht.readHumidity();
   if(temperature > TEMPMAX || temperature < TEMPMIN)
@@ -234,6 +294,9 @@ State routine()
     return status;
   }
   //TODO erogating
+
+  // to return IDLE if nothing wrong was found
+  return status;
 }
 
 int readMic()
