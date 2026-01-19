@@ -59,6 +59,40 @@
             {% else %}
                 <h2>Nessun risultato trovato.</h2>
             {% endif %}
+            {% if user.is_authenticated %}
+                <h2>Lista dei distributori in allerta:</h2>
+                {% if al_distributors %}
+                    <ul>
+                        {% for d in al_distributors %}
+                            <li>
+                                <h2> {{ d.address }} </h2>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <h2>Nessun risultato trovato.</h2>
+                {% endif %}
+                <h2>Lista dei distributori offline:</h2>
+                {% if off_distributors %}
+                    <ul>
+                        {% for d in off_distributors %}
+                            <li>
+                                <h2> {{ d.address }} </h2>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <h2>Nessun risultato trovato.</h2>
+                {% endif %}
+                {% if best_otm %}
+                    <h2>Il migliore articolo del mese è:</h2>
+                    {% for p in product_list %}
+                        {% if p.id == best_otm.product_id %}
+                            <h2> {{ p.name }} con il {{ best_otm.percentage }}% del totale di vendita</h2>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <h2>Nessun dato di vendita trovato.</h2>
+                {% endif %}
+            {% endif %}
         </div>
     </div>
     <script>{{ map.script.render|safe }}</script>

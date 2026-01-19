@@ -8,12 +8,18 @@ from django.views.generic import TemplateView
 from ServerApplication.models import *
 from django.contrib import messages
 import folium
+from dataclasses import dataclass
 
 
 # Create your views here.
 def index(request):
     #return HttpResponse("Hello, world. You're at the polls index.")
     return render(request, "landing.html")
+
+@dataclass
+class SellingDataAnalysis:
+    product_id: int
+    percentage: float
 
 # test map
 class MapView(TemplateView):
@@ -38,6 +44,8 @@ class MapView(TemplateView):
 
         # A list to fill with the operating distributors
         op_distributors = list()
+        al_distributors = list()
+        off_distributors = list()
         temp = list(all_distributors)
 
         # Adding a marker for each distributor
@@ -50,7 +58,7 @@ class MapView(TemplateView):
                 dispenser all'interno del campus universitario DIEF UNIMORE
             '''
 
-            if distributor.status == '1':
+            if distributor.status == '1':   #Operative
                 # Add a Marker
                 folium.Marker(
                     location = [distributor.position_x, distributor.position_y],
@@ -61,6 +69,29 @@ class MapView(TemplateView):
                 # Add distributor to the list
                 op_distributors.append(distributor)
 
+            #for the next two it is needed to find a way to hide them to un-authenticated users
+            elif distributor.status == '2': #Alert
+                # Add a Marker
+                '''folium.Marker(
+                    location=[distributor.position_x, distributor.position_y],
+                    popup=popup_html,
+                    tooltip=distributor.address,
+                    icon=folium.Icon(icon='fa-heart', prefix='fa', color='red')
+                ).add_to(map)'''
+                # Add distributor to the list
+                al_distributors.append(distributor)
+
+            elif distributor.status == '3': #Offline
+                # Add a Marker
+                '''folium.Marker(
+                    location=[distributor.position_x, distributor.position_y],
+                    popup=popup_html,
+                    tooltip=distributor.address,
+                    icon=folium.Icon(icon='fa-heart', prefix='fa', color='gray')
+                ).add_to(map)'''
+                # Add distributor to the list
+                off_distributors.append(distributor)
+
         all_products_in_distributors = ProductsInDistributor.objects.all()
         _temp = list(all_products_in_distributors)
         av_products = list()
@@ -70,9 +101,29 @@ class MapView(TemplateView):
                 av_products.append(pid)
 
         product_list = Product.objects.all()
+        selling_list = Selling.objects.all()
+        p_temp = list(product_list)
+        s_temp = list(selling_list)
+        selling_counter = selling_list.count()
+        sda = list()    # to put the analyzed data from the sellings
+        best_otm = None  # stands for "Best Seller Of The Month"
+
+        for p in p_temp:
+            counter = 0
+            for s in s_temp:
+                if s.date_time.month == datetime.now().month and p.id == s.id_product.id:
+                    counter += 1
+
+            if counter != 0:
+                selling_data = SellingDataAnalysis(p.id, (counter / selling_counter)*100)
+                sda.append(selling_data)
+                if (best_otm is not None and selling_data.percentage > best_otm.percentage) or best_otm is None:
+                    best_otm = selling_data
+
         # Render and send to template
         figure.render()
-        return {"map": figure, "op_distributors": op_distributors, "products_inside": av_products, "product_list": product_list}
+        return {"map": figure, "op_distributors": op_distributors, "products_inside": av_products, "product_list": product_list,
+                "al_distributors": al_distributors, "off_distributors": off_distributors, "best_otm": best_otm}
 
 # Used to get all the available products inside a specific distributor
 '''def this_distributor(request, distributor_id):

@@ -24,7 +24,6 @@ uint8_t TARGET_ADDH = 0x00;
 uint8_t TARGET_ADDL = 0x03;
 uint8_t TARGET_CHANNEL = 23;
 
-
 //to enable and disable DEBUG
 #define DEBUG_ENABLE
 #ifdef DEBUG_ENABLE
