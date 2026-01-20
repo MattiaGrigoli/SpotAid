@@ -79,6 +79,19 @@
         {% endif %}
         </table>
     </div>
+    {% if user.is_authenticated %}
+        {% if best_otm %}
+            <div class="distributors-menu">
+                <div class="selling-results">
+                    {% for p in products %}
+                        {% if p.id == best_otm.product_id %}
+                            <h2>Il prodotto più venduto nell'ultimo mese è: {{ p.name }} con il {{ best_otm.percentage }}% del totale per questo distributore</h2>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    {% endif %}
 </div>
 </body>
 </html>

@@ -15,10 +15,13 @@ body {
 .main-content {
     flex-grow: 1;
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    align-content: center;
     padding: 40px 20px;
     background-color: #616161;
+    gap: 10px;
 }
 
 /* ==================================== */
@@ -65,6 +68,8 @@ body {
     width: 95%;
     max-width: 1200px;
     overflow-x: auto; /* Per schermi piccoli */
+    align-items: center;
+    align-content: center;
 }
 
 table {
@@ -184,4 +189,21 @@ button:hover {
         padding: 6px;
         font-size: 0.8em;
     }
+}
+
+/* ==================================== */
+/* 5. DIV PER OSSERVARE LE VENDITE     */
+/* ==================================== */
+
+.selling-results
+{
+
+}
+
+.selling-results h2
+{
+    color: #fff;
+    text-align: center;
+    padding-top: 5px;
+    padding-bottom: 5px;
 }

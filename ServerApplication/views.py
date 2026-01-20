@@ -162,10 +162,32 @@ def listProduct(request, distributor_id):
     ).filter(id_distributor=distributor_id).all()                           # Fixed
     products = Product.objects.all()
 
+    sellings_of_distributors = Selling.objects.filter(id_distributor=distributor_id).all()
+
+    selling_counter = sellings_of_distributors.count()
+
+    p_temp = list(products)
+    s_temp = list(sellings_of_distributors)
+
+    best_otm = None  # stands for "Best Seller Of The Month"
+
+    for p in p_temp:
+        counter = 0
+        for s in s_temp:
+            if s.date_time.month == datetime.now().month and p.id == s.id_product.id:
+                counter += 1
+
+        if counter != 0:
+            selling_data = SellingDataAnalysis(p.id, (counter / selling_counter) * 100)
+
+            if (best_otm is not None and selling_data.percentage > best_otm.percentage) or best_otm is None:
+                best_otm = selling_data
+
     context = {
         'prod_dist_list': products_in_distributor,
         'products': products,
-        'id_distributor': distributor_id
+        'id_distributor': distributor_id,
+        'best_otm': best_otmli
     }
     return render(request, 'productList.html', context)
 
