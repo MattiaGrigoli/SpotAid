@@ -32,33 +32,6 @@ class ProductInside(BaseModel):
     id_product: int
     quantity: int
 
-# DO NOT USE, LoRa modules need string!
-# NEED TO CANCEL THIS FUNCTION
-def pack_products(products_list):
-    # Formato per singolo prodotto:
-    # <  : little-endian (standard per ESP32)
-    # H  : unsigned short (2B) - ID
-    # 13s: stringa di 13 byte (13B) - Nome
-    # f  : float (4B) - Prezzo
-    # H  : unsigned short (2B) - Quantità
-    # Totale per prodotto: 21 byte
-
-    # Intestazione: numero di prodotti (1 byte)
-    packet = struct.pack('B', len(products_list))
-
-    for p in products_list:
-        # Pulizia e codifica del nome (max 12 caratteri)
-        name_bytes = p.name[:12].encode('utf-8')
-
-        # Impacchettamento
-        # 13s riempirà automaticamente con zeri (null bytes) se il nome è più corto
-        packet += struct.pack('<H13sfH',
-                              p.id_product,
-                              name_bytes,
-                              p.price,
-                              p.quantity)
-    return packet
-
 async def getDetails(id: int):
     url = f"http://192.168.1.82:8000/ServerApplication/api/product/{id}/"
     async with httpx.AsyncClient() as client:
@@ -77,18 +50,26 @@ async def getDetails(id: int):
 
 @app.post("/")
 async def receive_list(items: List[ProductInside]):
-    payload = []
+    payloads = []
+    id_distributor = 0
     for item in items:
         print(f"Distributore: {item.id_distributor} - Prodotto: {item.id_product} - Qty: {item.quantity}")
         product = await getDetails(item.id_product)
+        id_distributor = item.id_distributor
         if product:
             product.quantity = item.quantity
-            payload.append(product)
-    if payload:
-        lora_payload = pack_products(payload)
-        # await send_to_lora(lora_payload)
+            p_string = f"{product.id},{product.name},{product.price:.2f},{item.quantity}"
+            payloads.append(p_string)
+    if payloads:
+        final_message = ";".join(payloads)
+        await send_lora(id_distributor, final_message)
 
     return {"status": "success"}
+
+async def send_lora(id: int, payload):
+    print("seding to", id, "payload:", payload)
+    lora.send_fixed_message(0, id, 23, payload)
+    return
 
 async def lora_listener():
     code = lora.begin()

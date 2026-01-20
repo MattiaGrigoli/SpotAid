@@ -19,10 +19,6 @@
 
 #include <IRremote.hpp>
 
-// Receiver address & channel
-uint8_t TARGET_ADDH = 0x00;
-uint8_t TARGET_ADDL = 0x02;
-uint8_t TARGET_CHANNEL = 23;
 
 //to enable and disable DEBUG
 #define DEBUG_ENABLE
@@ -69,6 +65,8 @@ DHT dht (DHTPIN, DHTTYPE);
 #define HUMMAX 85
 #define MICMAX 1000 //ESP max 4095
 #define IDMACHINE 1 //change for every dispenser
+#define BRIDGE_ADDL 01
+#define CHANNEL 0x23
 
 typedef enum 
 {
@@ -104,8 +102,14 @@ typedef enum
   NONE
 } IRButton;
 
-State state;
+//TODO create a std::map for having a dictionary-like management of the product inside the dispenser
+
+//global variable, also for efficiency
+State status;
 IRButton button;
+String _status_;
+String _button_;
+String msg;
 
 void setup() {
   // put your setup code here, to run once:
@@ -165,53 +169,40 @@ void loop() {
 #endif
   // getting the data to send through LoRa
 
-  State status = routine();             // to check if the dispenser is fine
-  String _status_ = String(status);
-  IRButton button = getButtonIR(); // to check if it has been received an input from the remote
-  String _button_ = String(button);
-  String msg;
+  status = routine();             // to check if the dispenser is fine
+  _status_ = String(status);
+  button = getButtonIR(); // to check if it has been received an input from the remote
+  _button_ = String(button);
 
-  if(status == ALERT)          //if the Status is on ALERT
+  switch(status)
   {
-    Serial.println("!ALERT!");
-    msg = _status_;
+    case ALERT:
+      Serial.println("!ALERT!");
+      msg = _status_;
 
-    ResponseStatus rs = e220ttl.sendFixedMessage
-    (
-      TARGET_ADDH,
-      TARGET_ADDL,
-      TARGET_CHANNEL,
-      msg
-    )
+      ResponseStatus rs = sendLora(msg)
+      break;
+    case EROGATING:
+      break;
+    case IDLE:
+      switch(button)
+      {
+        case ZERO: break;
+        case ONE: break;
+        case TWO: break;
+        case THREE: break;
+        case FOUR: break;
+        case FIVE: break;
+        case SIX: break;
+        case SEVEN: break;
+        case EIGHT: break;
+        case NINE: break;
+        default: Serial.println("Nothing to send."); return; //if the input received isn't a number
+      }
+      break;
   }
-  else if(status == IDLE)
-  {
-    switch(button)
-    {
-      case ZERO: break;
-      case ONE: break;
-      case TWO: break;
-      case THREE: break;
-      case FOUR: break;
-      case FIVE: break;
-      case SIX: break;
-      case SEVEN: break;
-      case EIGHT: break;
-      case NINE: break;
-      default: Serial.println("Nothing to send."); return; //if the input received isn't a number
-    }
-
-    msg = _status_ + " " + _button_;
-    ResponseStatus rs = e220ttl.sendFixedMessage
-    (
-      TARGET_ADDH,
-      TARGET_ADDL,
-      TARGET_CHANNEL,
-      msg
-    )
   }
   //...
-  delay(10000);
   return;
 }
 
@@ -225,11 +216,9 @@ IRButton getButtonIR() // takes action based on IR code received
     {
       //set the current decodedRawData to the last decodedRawData 
       irrecv.decodedIRData.decodedRawData = last_decodedRawData;
-      Serial.println(F("REPEAT!"));
     } else
     {
       //output the IR code on the serial monitor
-      Serial.print(F("IR code:0x"));
       Serial.println(irrecv.decodedIRData.decodedRawData, HEX);
     }
     //map the IR code to the remote key
@@ -257,7 +246,9 @@ IRButton getButtonIR() // takes action based on IR code received
       case 0xAD52FF00: button = EIGHT; break;
       case 0xB54AFF00: button = NINE; break;
       default:
-        Serial.println(F("ERROR IRButton"));
+#ifdef DEBUG_ENABLE
+        DEBUG_PRINTLN(F("ERROR IRButton"));
+#endif
         button = ERROR;
     }// End Case
     //store the last decodedRawData
@@ -301,6 +292,62 @@ State routine()
 int readMic()
 {
   return analogRead(MICPIN);
+}
+
+ResponseStatus sendLora(String msg)
+{
+  ResponseStatus rs = e220ttl.sendFixedMessage
+  (
+    0,
+    BRIDGE_ADDL,
+    CHANNEL,
+    msg
+  )
+  return rs
+}
+
+//TO TEST
+void listenLora()
+{
+  if (e220ttl.available() > 0) 
+  {
+    ResponseContainer msg = e220ttl.receiveMessage();
+    String input = msg.data;
+#ifdef DEBUG_ENABLE
+    DEBUG_PRINT("Received: ");
+    DEBUG_PRINTLN(msg.data);
+#endif
+    int startIndex = 0;
+    int endIndex = input.indexOf(';');
+
+    while (startIndex < input.length()) {
+        if (endIndex == -1) endIndex = input.length();
+        
+        // Estraiamo la stringa del singolo prodotto: "1,Pasta,1.50,5"
+        String productStr = input.substring(startIndex, endIndex);
+        
+        // Ora dividiamo i campi (separatore ',')
+        int c1 = productStr.indexOf(',');
+        int c2 = productStr.indexOf(',', c1 + 1);
+        int c3 = productStr.indexOf(',', c2 + 1);
+
+        if (c1 != -1 && c2 != -1 && c3 != -1) {
+            int id = productStr.substring(0, c1).toInt();
+            String name = productStr.substring(c1 + 1, c2);
+            float price = productStr.substring(c2 + 1, c3).toFloat();
+            int qty = productStr.substring(c3 + 1).toInt();
+
+            // Ora puoi usare i dati!
+#ifdef DEBUG_ENABLE
+            DEBUG_PRINTLN("Ricevuto -> ID: %d, Nome: %s, Prezzo: %.2f, Qta: %d\n", id, name.c_str(), price, qty);
+#endif
+            //TODO populate the std::map with new values, overwrite EVERYTHING everytime
+        }
+
+        startIndex = endIndex + 1;
+        endIndex = input.indexOf(';', startIndex);
+    }
+  }
 }
 
 #ifdef DEBUG_ENABLE
