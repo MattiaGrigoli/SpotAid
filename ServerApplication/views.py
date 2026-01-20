@@ -187,7 +187,7 @@ def listProduct(request, distributor_id):
         'prod_dist_list': products_in_distributor,
         'products': products,
         'id_distributor': distributor_id,
-        'best_otm': best_otmli
+        'best_otm': best_otm
     }
     return render(request, 'productList.html', context)
 
