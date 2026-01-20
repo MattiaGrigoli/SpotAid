@@ -1,6 +1,5 @@
 from http.client import responses
 from itertools import product
-
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -9,7 +8,7 @@ from ServerApplication.models import *
 from django.contrib import messages
 import folium
 from dataclasses import dataclass
-
+import requests
 
 # Create your views here.
 def index(request):
@@ -177,6 +176,7 @@ def updateCount(request):
     item = ProductsInDistributor.objects.get(id_distributor=id_distributor, id_product=id_product)
     item.quantity = quantity
     item.save()
+    sendCount(id_distributor)
     response = listProduct(request, id_distributor)
     return response
 
@@ -185,6 +185,7 @@ def removeCount(request):
     id_product = request.POST.get('id_product')
     item = ProductsInDistributor.objects.get(id_distributor=id_distributor, id_product=id_product)
     item.delete()
+    sendCount(id_distributor)
     response = listProduct(request, id_distributor)
     return response
 
@@ -196,5 +197,18 @@ def addCount(request):
     product = Product.objects.get(id=id_product)
     item = ProductsInDistributor(id_distributor=distributor, id_product=product, quantity=quantity)
     item.save()
+    sendCount(id_distributor)
     response = listProduct(request, id_distributor)
     return response
+
+def sendCount(id_distributor):
+    list = ProductsInDistributor.objects.filter(id_distributor=id_distributor)
+    data = SerProductsInDistributor(list, many=True).data
+    url_bridge = "http://192.168.1.190:8000/" #change for demonstration?
+
+    try:
+        response = requests.post(url_bridge, json=data)
+        return
+    except Exception as e:
+        print(e)
+        return False

@@ -21,7 +21,7 @@
 
 // Receiver address & channel
 uint8_t TARGET_ADDH = 0x00;
-uint8_t TARGET_ADDL = 0x03;
+uint8_t TARGET_ADDL = 0x02;
 uint8_t TARGET_CHANNEL = 23;
 
 //to enable and disable DEBUG
@@ -198,7 +198,7 @@ void loop() {
       case SEVEN: break;
       case EIGHT: break;
       case NINE: break;
-      default: Serial.println("Nothing to send."); delay(2000); return; //if the input received isn't a number
+      default: Serial.println("Nothing to send."); return; //if the input received isn't a number
     }
 
     msg = _status_ + " " + _button_;

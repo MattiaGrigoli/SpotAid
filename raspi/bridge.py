@@ -1,0 +1,149 @@
+from lora_e220 import LoRaE220, print_configuration, Configuration
+#from lora_e220_operation_constant import ResponseStatusCode, AirDataRate, UARTBaudRate, TransmissionPower
+from lora_e220_constants import UARTParity, UARTBaudRate, TransmissionPower, FixedTransmission, AirDataRate, \
+    OperatingFrequency, LbtEnableByte, WorPeriod, RssiEnableByte, RssiAmbientNoiseEnable, SubPacketSetting
+from lora_e220_operation_constant import ResponseStatusCode, ModeType, ProgramCommand, SerialUARTBaudRate, \
+    PacketLength, RegisterAddress
+import serial
+import time
+
+import asyncio
+import uvicorn
+from fastapi import FastAPI, Request
+from pydantic import BaseModel
+from typing import List
+import httpx
+import struct
+
+app = FastAPI()
+loraSerial = serial.Serial('/dev/ttyAMA0', baudrate=9600)
+lora = LoRaE220('900T22D', loraSerial, aux_pin=4, m0_pin=23, m1_pin=24)
+
+class Product(BaseModel):
+    id: int = 0
+    name: str = ""
+    price: float = 0.0
+    quantity: int = 0
+
+
+class ProductInside(BaseModel):
+    id: int
+    id_distributor: int
+    id_product: int
+    quantity: int
+
+# DO NOT USE, LoRa modules need string!
+# NEED TO CANCEL THIS FUNCTION
+def pack_products(products_list):
+    # Formato per singolo prodotto:
+    # <  : little-endian (standard per ESP32)
+    # H  : unsigned short (2B) - ID
+    # 13s: stringa di 13 byte (13B) - Nome
+    # f  : float (4B) - Prezzo
+    # H  : unsigned short (2B) - Quantità
+    # Totale per prodotto: 21 byte
+
+    # Intestazione: numero di prodotti (1 byte)
+    packet = struct.pack('B', len(products_list))
+
+    for p in products_list:
+        # Pulizia e codifica del nome (max 12 caratteri)
+        name_bytes = p.name[:12].encode('utf-8')
+
+        # Impacchettamento
+        # 13s riempirà automaticamente con zeri (null bytes) se il nome è più corto
+        packet += struct.pack('<H13sfH',
+                              p.id_product,
+                              name_bytes,
+                              p.price,
+                              p.quantity)
+    return packet
+
+async def getDetails(id: int):
+    url = f"http://192.168.1.82:8000/ServerApplication/api/product/{id}/"
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url)
+            if response.status_code == 200:
+                json = response.json()
+                product = Product(**json)
+                print(product.id, product.name, product.price)
+                return product
+            else:
+                return None
+        except Exception as e:
+            print(f"error:{type(e).__name__} - {e}")
+            return None
+
+@app.post("/")
+async def receive_list(items: List[ProductInside]):
+    payload = []
+    for item in items:
+        print(f"Distributore: {item.id_distributor} - Prodotto: {item.id_product} - Qty: {item.quantity}")
+        product = await getDetails(item.id_product)
+        if product:
+            product.quantity = item.quantity
+            payload.append(product)
+    if payload:
+        lora_payload = pack_products(payload)
+        # await send_to_lora(lora_payload)
+
+    return {"status": "success"}
+
+async def lora_listener():
+    code = lora.begin()
+    print("Initialization: {}", ResponseStatusCode.get_description(code))
+    while True:
+        # listen LoRa
+        await asyncio.sleep(1)
+
+async def main():
+    config = uvicorn.Config(app, host="0.0.0.0", port=8000)
+    server = uvicorn.Server(config)
+    await asyncio.gather(
+        lora_listener(),
+        server.serve()
+    )
+
+if __name__ == '__main__':
+    asyncio.run(main())
+
+#time.sleep(0.5)
+
+#code, configuration = lora.get_configuration()
+#print(code)
+#print(configuration)
+#print("Retrieve configuration: {}", ResponseStatusCode.get_description(code))
+#if configuration is None:
+	#print("errore di configurazione")
+#else:
+	#print_configuration(configuration)
+
+# configuration_to_set = Configuration('900T22D')
+# configuration_to_set.ADDL = 0x02
+# configuration_to_set.ADDH = 0x00
+# configuration_to_set.CHAN = 32
+
+# configuration_to_set.SPED.airDataRate = AirDataRate.AIR_DATA_RATE_010_24
+# #configuration_to_set.SPED.uartParity = UARTParity.MODE_00_8N1
+# configuration_to_set.SPED.uartBaudRate = UARTBaudRate.BPS_9600
+
+# configuration_to_set.OPTION.transmissionPower = TransmissionPower('900T22D').\
+#                                                     get_transmission_power().POWER_22
+# # or
+# # configuration_to_set.OPTION.transmissionPower = TransmissionPower22.POWER_10
+
+# #configuration_to_set.OPTION.RSSIAmbientNoise = RssiAmbientNoiseEnable.RSSI_AMBIENT_NOISE_ENABLED
+# #configuration_to_set.OPTION.subPacketSetting = SubPacketSetting.SPS_064_10
+
+# #configuration_to_set.TRANSMISSION_MODE.fixedTransmission = FixedTransmission.FIXED_TRANSMISSION
+# #configuration_to_set.TRANSMISSION_MODE.WORPeriod = WorPeriod.WOR_1500_010
+# #configuration_to_set.TRANSMISSION_MODE.enableLBT = LbtEnableByte.LBT_DISABLED
+# #configuration_to_set.TRANSMISSION_MODE.enableRSSI = RssiEnableByte.RSSI_ENABLED
+
+# #configuration_to_set.CRYPT.CRYPT_H = 1
+# #configuration_to_set.CRYPT.CRYPT_L = 1
+
+
+# # Set the new configuration on the LoRa module and print the updated configuration to the console
+# code, confSetted = lora.set_configuration(configuration_to_set)
