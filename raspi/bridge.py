@@ -5,8 +5,9 @@ from lora_e220_constants import UARTParity, UARTBaudRate, TransmissionPower, Fix
 from lora_e220_operation_constant import ResponseStatusCode, ModeType, ProgramCommand, SerialUARTBaudRate, \
     PacketLength, RegisterAddress
 import serial
+import json
 import time
-
+from datetime import datetime
 import asyncio
 import uvicorn
 from fastapi import FastAPI, Request
@@ -14,6 +15,8 @@ from pydantic import BaseModel
 from typing import List
 import httpx
 import struct
+
+from rest_framework.fields import DateTimeField
 
 app = FastAPI()
 loraSerial = serial.Serial('/dev/ttyAMA0', baudrate=9600)
@@ -31,6 +34,18 @@ class ProductInside(BaseModel):
     id_distributor: int
     id_product: int
     quantity: int
+
+class Distributor(BaseModel):
+    id: int
+    status: str
+    address: str
+    position_x: float
+    position_y: float
+
+class Selling(BaseModel):
+    date_time: datetime
+    id_distributor: int
+    id_product: int
 
 async def getDetails(id: int):
     url = f"http://192.168.1.82:8000/ServerApplication/api/product/{id}/"
@@ -65,6 +80,13 @@ async def receive_list(items: List[ProductInside]):
         await send_lora(id_distributor, final_message)
 
     return {"status": "success"}
+
+# To add a selling to the database
+@app.post("http://192.168.1.82:8000/ServerApplication/api/selling/")
+async def addSelling(id_d: int, id_p: int):
+    new_selling = Selling(date_time =datetime.now(), id_distributor = id_d, id_product = id_p)
+
+    return new_selling
 
 async def send_lora(id: int, payload):
     print("seding to", id, "payload:", payload)
