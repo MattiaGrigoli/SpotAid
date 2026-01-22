@@ -82,11 +82,18 @@ async def receive_list(items: List[ProductInside]):
     return {"status": "success"}
 
 # To add a selling to the database
-@app.post("http://192.168.1.82:8000/ServerApplication/api/selling/")
 async def addSelling(id_d: int, id_p: int):
-    new_selling = Selling(date_time =datetime.now(), id_distributor = id_d, id_product = id_p)
+    new_selling = Selling(date_time = datetime.now(), id_distributor = id_d, id_product = id_p)
 
-    return new_selling
+    url = f"http://192.168.1.82:8000/ServerApplication/api/selling/"
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(url, json = new_selling)
+            if response.status_code == 200:
+                return response
+        except Exception as e:
+            print(f"error:{type(e).__name__} - {e}")
+    return None
 
 async def send_lora(id: int, payload):
     print("seding to", id, "payload:", payload)
