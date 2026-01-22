@@ -161,6 +161,7 @@ def listProduct(request, distributor_id):
         'id_product'
     ).filter(id_distributor=distributor_id).all()                           # Fixed
     products = Product.objects.all()
+    status = Distributor.objects.get(id=distributor_id).status
 
     sellings_of_distributors = Selling.objects.filter(id_distributor=distributor_id).all()
 
@@ -187,6 +188,7 @@ def listProduct(request, distributor_id):
         'prod_dist_list': products_in_distributor,
         'products': products,
         'id_distributor': distributor_id,
+        'status': status,
         'best_otm': best_otm
     }
     return render(request, 'productList.html', context)

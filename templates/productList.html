@@ -89,6 +89,11 @@
                         {% endif %}
                     {% endfor %}
                 </div>
+                {% if status == 'Alert' %}
+                    <div>
+                        <button>Fine stato di Alert</button>
+                    </div>
+                {% endif %}
             </div>
         {% endif %}
     {% endif %}
