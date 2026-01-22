@@ -10,6 +10,7 @@
 //From https://iotdesignpro.com/projects/wireless-communication-between-arduino-and-raspberry-pi-using-lora-module-sx1278
 // used for SPI communication between arduino and LoRa modules
 #include <SPI.h>
+#include <map>
 
 //IR memory optimizations
 #define RAW_BUFFER_LENGHT 50
@@ -67,6 +68,9 @@ DHT dht (DHTPIN, DHTTYPE);
 #define IDMACHINE 1 //change for every dispenser
 #define BRIDGE_ADDL 01
 #define CHANNEL 0x23
+#define DELAYLCD 1500 //1.5 seconds
+#define ID_DISPENSER 0 //address LOW 0x02
+#define DELAYEROGATION 1000 // 1 second
 
 typedef enum 
 {
@@ -103,16 +107,37 @@ typedef enum
 } IRButton;
 
 //TODO create a std::map for having a dictionary-like management of the product inside the dispenser
+class Product 
+{
+public:
+  int id;
+  int count;
+  String name;
+  float price;
+
+  Product(){
+    id = 0;
+    count=0;
+    name = "";
+    price = 0.0;
+  };
+private:
+};
+
+std::map<int, Product> products;
 
 //global variable, also for efficiency
 State status;
-IRButton button;
+IRButton buttonIR;
 String _status_;
 String _button_;
 String msg;
+unsigned long now; //for display
+byte displayIndex;
+int buttonState;
+bool displayed; // to avoid constant LCD clearing
 
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(115200);
   DEBUG_PRINTLN(F("--- DEBUG ENABLED ---"));
 
@@ -136,6 +161,14 @@ void setup() {
   delay(500);
   e220ttl.begin();
 
+  DEBUG_PRINTLN(F("Initialize button"));
+  pinMode(BUTTON, INPUT_PULLUP);
+
+  now = millis();
+  displayIndex = 0;
+  displayed = false;
+  status = ALERT;
+
 #ifdef DEBUG_ENABLE
   //TestErogate();
   testLcd();
@@ -158,49 +191,127 @@ void setup() {
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
 #ifdef DEBUG_ENABLE
-  //testMic();
-  /*if (irrecv.decode()) // have we received an IR signal?
-  {
-    translateIR();
-    irrecv.resume(); // receive the next value
-  }*/
+
 #endif
   // getting the data to send through LoRa
 
   status = routine();             // to check if the dispenser is fine
   _status_ = String(status);
-  button = getButtonIR(); // to check if it has been received an input from the remote
-  _button_ = String(button);
+  buttonIR = getButtonIR(); // to check if it has been received an input from the remote
+  _button_ = String(buttonIR);
+  buttonState = digitalRead(BUTTON);
 
   switch(status)
   {
     case ALERT:
-      Serial.println("!ALERT!");
-      msg = _status_;
-
-      ResponseStatus rs = sendLora(msg)
-      break;
-    case EROGATING:
-      break;
-    case IDLE:
-      switch(button)
+    {
+      //display "ALERT" on LCD, and check if button was pressed
+      if(!displayed)
       {
-        case ZERO: break;
-        case ONE: break;
-        case TWO: break;
-        case THREE: break;
-        case FOUR: break;
-        case FIVE: break;
-        case SIX: break;
-        case SEVEN: break;
-        case EIGHT: break;
-        case NINE: break;
-        default: Serial.println("Nothing to send."); return; //if the input received isn't a number
+        displayed = true;
+        displayLCD(F("ALERT"), F("out of order!"));
+        sendLora(F("ALERT"));
+      }
+      if(buttonState == HIGH)
+      {
+        DEBUG_PRINTLN(F("alert button pressed"));
+        status = IDLE;
+        displayed = false;
       }
       break;
-  }
+    }
+    case EROGATION:
+    {
+      break;
+    }
+    case IDLE:
+    {
+      //if product list is empty
+      if(products.size() == 0)
+      {
+        if(!displayed)
+        {
+          displayLCD("waiting list", "");
+        }else
+        {
+          break;
+        }
+      }else
+      {
+        cycleDisplay();
+      }
+      if (buttonIR != NONE)
+      {
+        byte productsNumber = products.size();
+        switch(buttonIR)
+        {
+          case ZERO:
+          {
+            auto product = std::next(products.begin(), 0);
+            if(products[product->second.id].count != 0)
+            {
+            startErogation();
+            DEBUG_PRINT("sending lora selling of "); DEBUG_PRINT(product->second.id);
+            sendLora(":"+String(product->second.id));
+            products[product->second.id].count--;
+            break;
+            }else
+            {
+              DEBUG_PRINTLN("selezionato prodotto finito");
+              break;
+            }
+          }
+          case ONE: 
+          {
+            sendSelling(productsNumber, 1);
+            break;
+          }
+          case TWO:
+          {
+            sendSelling(productsNumber, 2);
+            break;
+          }
+          case THREE:
+          {
+            sendSelling(productsNumber, 3);
+            break;
+          }
+          case FOUR:
+          {
+            sendSelling(productsNumber, 4);
+            break;
+          }
+          case FIVE:
+          {
+            sendSelling(productsNumber, 5);
+            break;
+          }
+          case SIX:
+          {
+            sendSelling(productsNumber, 6);
+            break;
+          }
+          case SEVEN:
+          {
+            sendSelling(productsNumber, 7);
+            break;
+          }
+          case EIGHT:
+          {
+            sendSelling(productsNumber, 8);
+            break;
+          }
+          case NINE:
+          {
+            sendSelling(productsNumber, 9);
+            break;
+          }
+          default: break; //if the input received isn't a number
+        }
+      }
+      break;
+    }
   }
   //...
   return;
@@ -246,9 +357,7 @@ IRButton getButtonIR() // takes action based on IR code received
       case 0xAD52FF00: button = EIGHT; break;
       case 0xB54AFF00: button = NINE; break;
       default:
-#ifdef DEBUG_ENABLE
         DEBUG_PRINTLN(F("ERROR IRButton"));
-#endif
         button = ERROR;
     }// End Case
     //store the last decodedRawData
@@ -265,28 +374,38 @@ IRButton getButtonIR() // takes action based on IR code received
 //initial routine at beginning of loop
 State routine()
 {
-  State status = IDLE;
+  State state = IDLE;
   float temperature = dht.readTemperature();
   float humidity = dht.readHumidity();
   if(temperature > TEMPMAX || temperature < TEMPMIN)
   {
-    status = ALERT;
+    state = ALERT;
+    stopErogation();
     //immediately return for emergency
-    return status
+    return state;
   }else if (humidity > HUMMAX || humidity < HUMMIN)
   {
-    status = ALERT;
-    return status;
+    state = ALERT;
+    stopErogation();
+    return state;
   }
   if (readMic() > MICMAX)
   {
-    status = ALERT;
-    return status;
+    state = ALERT;
+    stopErogation();
+    return state;
   }
-  //TODO erogating
+  if(status == EROGATION)
+  {
+    if(millis() > now + DELAYEROGATION)
+    {
+      stopErogation();
+      state = IDLE;
+    }
+  }
 
   // to return IDLE if nothing wrong was found
-  return status;
+  return state;
 }
 
 int readMic()
@@ -301,9 +420,9 @@ ResponseStatus sendLora(String msg)
     0,
     BRIDGE_ADDL,
     CHANNEL,
-    msg
-  )
-  return rs
+    String(ID_DISPENSER) + msg  //to identify always the dispener
+  );
+  return rs;
 }
 
 //TO TEST
@@ -311,12 +430,13 @@ void listenLora()
 {
   if (e220ttl.available() > 0) 
   {
+    products.clear();
     ResponseContainer msg = e220ttl.receiveMessage();
     String input = msg.data;
-#ifdef DEBUG_ENABLE
+
     DEBUG_PRINT("Received: ");
     DEBUG_PRINTLN(msg.data);
-#endif
+
     int startIndex = 0;
     int endIndex = input.indexOf(';');
 
@@ -337,11 +457,22 @@ void listenLora()
             float price = productStr.substring(c2 + 1, c3).toFloat();
             int qty = productStr.substring(c3 + 1).toInt();
 
-            // Ora puoi usare i dati!
-#ifdef DEBUG_ENABLE
-            DEBUG_PRINTLN("Ricevuto -> ID: %d, Nome: %s, Prezzo: %.2f, Qta: %d\n", id, name.c_str(), price, qty);
-#endif
-            //TODO populate the std::map with new values, overwrite EVERYTHING everytime
+            //Serial.println("Ricevuto -> ID: %d, Nome: %s, Prezzo: %.2f, Qta: %d\n", id, name.c_str(), price, qty);
+            DEBUG_PRINT("Ricevuto -> ID: ");
+            DEBUG_PRINT(id);
+            DEBUG_PRINT(", Nome: ");
+            DEBUG_PRINT(name.c_str());
+            DEBUG_PRINT(", Prezzo: ");
+            DEBUG_PRINT(price);
+            DEBUG_PRINT(", Qta: ");
+            DEBUG_PRINT("qty");
+
+            Product product;
+            product.id = id;
+            product.price = price;
+            product.count = qty;
+            product.name = name;
+            products.insert({product.id, product});
         }
 
         startIndex = endIndex + 1;
@@ -350,12 +481,103 @@ void listenLora()
   }
 }
 
+void cycleDisplay()
+{
+  if(millis() > now + DELAYLCD)
+  {
+    now = millis();
+    if(displayIndex == products.size()-1)
+    {
+      displayIndex = 0;
+    }else
+    {
+      displayIndex++;
+    }
+    auto product = std::next(products.begin(), displayIndex);
+    if(products[product->second.id].count != 0)
+    {
+      String name= product->second.name;
+      if(name.length() > 11)
+      {
+        name = name.substring(0,11);
+      }
+      displayLCD("Select a product", String(displayIndex) + ":" + name + " " + String(product->second.price, 2));
+    }else
+    {
+      return;
+    }
+  }else
+  {
+    return;
+  }
+}
+
+void displayLCD(String msgTop, String msgUnder)
+{
+  if(msgTop.length() > 16 || msgUnder.length() > 16)
+  {
+    return;
+  }
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print(msgTop);
+  lcd.setCursor(0,1);
+  lcd.print(msgUnder);
+  return;
+}
+
+void startErogation()
+{
+  status = EROGATION;
+  displayLCD(F("Erogating..."), F("Please wait"));
+  now = millis();
+  DEBUG_PRINTLN(F("starting rotating"));
+  digitalWrite(DCDIRA, HIGH);
+  digitalWrite(DCDIRB, LOW);
+  return;
+}
+
+void stopErogation()
+{
+  DEBUG_PRINTLN(F("stopping rotating"));
+  digitalWrite(DCDIRA, LOW);
+  digitalWrite(DCDIRB, LOW);
+  return;
+}
+
+void sendSelling(byte limit, byte index)
+{
+  if(limit > index)
+  {
+    auto product = std::next(products.begin(), index);
+    if(products[product->second.id].count != 0)
+    {
+      startErogation();
+      DEBUG_PRINT("sending lora selling of "); DEBUG_PRINT(product->second.id);
+      sendLora(":"+String(product->second.id));
+      products[product->second.id].count--;
+      return;
+    }else
+    {
+      DEBUG_PRINTLN("selezionato prodotto finito");
+      return;
+    }
+  }else
+  {
+    DEBUG_PRINTLN("not in index");
+    return;
+  }
+}
+
 #ifdef DEBUG_ENABLE
+//TO FIX
 void TestErogate(){
   DEBUG_PRINTLN(F("starting rotating"));
   digitalWrite(DCDIRA, HIGH);
   digitalWrite(DCDIRB, LOW);
   delay(3000);
+  digitalWrite(DCDIRA, LOW);
+  digitalWrite(DCDIRB, LOW);
   DEBUG_PRINTLN(F("stopping rotating"));
 }
 

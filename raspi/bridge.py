@@ -88,7 +88,7 @@ async def addSelling(id_d: int, id_p: int):
     url = f"http://192.168.1.82:8000/ServerApplication/api/selling/"
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post(url, json = new_selling)
+            response = await client.post(url, json = json.loads(new_selling.model_dump_json()))
             if response.status_code == 200:
                 return response
         except Exception as e:
