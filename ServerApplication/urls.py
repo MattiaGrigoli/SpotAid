@@ -23,4 +23,5 @@ urlpatterns = [
     path('updateCount', views.updateCount, name = 'updateCount'),
     path('removeCount', views.removeCount, name = 'removeCount'),
     path('addCount', views.addCount, name = 'addCount'),
+    path('removeAlert', views.removeAlert, name = 'removeAlert'),
 ]

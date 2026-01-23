@@ -25,7 +25,9 @@ class MapView(TemplateView):
     template_name = 'testMap.html'
 
 
+
     def get_context_data(self, **kwargs):
+        is_logged_in = self.request.user.is_authenticated
 
         figure = folium.Figure()
         target_url = "/ServerApplication"
@@ -71,23 +73,25 @@ class MapView(TemplateView):
             #for the next two it is needed to find a way to hide them to un-authenticated users
             elif distributor.status == '2': #Alert
                 # Add a Marker
-                '''folium.Marker(
-                    location=[distributor.position_x, distributor.position_y],
-                    popup=popup_html,
-                    tooltip=distributor.address,
-                    icon=folium.Icon(icon='fa-heart', prefix='fa', color='red')
-                ).add_to(map)'''
+                if is_logged_in:
+                    folium.Marker(
+                        location=[distributor.position_x, distributor.position_y],
+                        popup=popup_html,
+                        tooltip=distributor.address,
+                        icon=folium.Icon(icon='fa-heart', prefix='fa', color='red')
+                    ).add_to(map)
                 # Add distributor to the list
                 al_distributors.append(distributor)
 
             elif distributor.status == '3': #Offline
                 # Add a Marker
-                '''folium.Marker(
-                    location=[distributor.position_x, distributor.position_y],
-                    popup=popup_html,
-                    tooltip=distributor.address,
-                    icon=folium.Icon(icon='fa-heart', prefix='fa', color='gray')
-                ).add_to(map)'''
+                if is_logged_in:
+                    folium.Marker(
+                        location=[distributor.position_x, distributor.position_y],
+                        popup=popup_html,
+                        tooltip=distributor.address,
+                        icon=folium.Icon(icon='fa-heart', prefix='fa', color='gray')
+                    ).add_to(map)
                 # Add distributor to the list
                 off_distributors.append(distributor)
 
@@ -189,7 +193,7 @@ def listProduct(request, distributor_id):
         'products': products,
         'id_distributor': distributor_id,
         'status': status,
-        'best_otm': best_otm
+        'best_otm': best_otm,
     }
     return render(request, 'productList.html', context)
 
@@ -236,3 +240,10 @@ def sendCount(id_distributor):
     except Exception as e:
         print(e)
         return False
+
+def removeAlert(request):
+    distributor = Distributor.objects.get(id=request.POST.get('id_distributor'))
+    distributor.status = 1
+    distributor.save()
+    sendCount(distributor.id)
+    return redirect('ServerApplication:List', distributor_id=distributor.id)

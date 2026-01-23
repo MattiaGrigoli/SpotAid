@@ -16,8 +16,6 @@ from typing import List
 import httpx
 import struct
 
-from rest_framework.fields import DateTimeField
-
 app = FastAPI()
 loraSerial = serial.Serial('/dev/ttyAMA0', baudrate=9600)
 lora = LoRaE220('900T22D', loraSerial, aux_pin=4, m0_pin=23, m1_pin=24)
@@ -96,16 +94,43 @@ async def addSelling(id_d: int, id_p: int):
     return None
 
 async def send_lora(id: int, payload):
-    print("seding to", id, "payload:", payload)
-    lora.send_fixed_message(0, id, 23, payload)
+    print("sending to", id, "payload:", payload)
+    lora.send_fixed_message(0, id, 32, payload)
     return
 
 async def lora_listener():
     code = lora.begin()
+    #loraSetConfiguration()
     print("Initialization: {}", ResponseStatusCode.get_description(code))
     while True:
-        # listen LoRa
+        if lora.available() > 0:
+            print("received!")
+            code,value = lora.receive_message()
+            print(value)
+            id, text = value.split(':',1)
+            if 'ALERT' in value:
+                await setAlert(id)
+            else:
+                pass
+                await addSelling(id, text)
+
         await asyncio.sleep(1)
+
+async def setAlert(distributor_id: int):
+    url = f"http://192.168.1.82:8000/ServerApplication/api/distributor/{distributor_id}/"
+    data = {"status": 2}
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.patch(url, json=data)
+
+            if response.status_code == 200:
+                print(f"Status Distributore {distributor_id} aggiornato ad alert")
+                return response.json()
+            else:
+                print(f"Errore {response.status_code}: {response.text}")
+        except Exception as e:
+            print(f"Errore connessione durante l'update: {e}")
+    return None
 
 async def main():
     config = uvicorn.Config(app, host="0.0.0.0", port=8000)
@@ -114,6 +139,23 @@ async def main():
         lora_listener(),
         server.serve()
     )
+
+def loraSetConfiguration():
+    configuration_to_set = Configuration('900T22D')
+    configuration_to_set.ADDL = 0x01
+    configuration_to_set.ADDH = 0x00
+    configuration_to_set.CHAN = 32
+    configuration_to_set.SPED.airDataRate = AirDataRate.AIR_DATA_RATE_010_24
+    configuration_to_set.SPED.uartBaudRate = UARTBaudRate.BPS_9600
+    configuration_to_set.OPTION.transmissionPower = TransmissionPower('900T22D').\
+                                                    get_transmission_power().POWER_22
+    configuration_to_set.TRANSMISSION_MODE.fixedTransmission = FixedTransmission.FIXED_TRANSMISSION
+    code, confSetted = lora.set_configuration(configuration_to_set)
+    code, configuration = lora.get_configuration()
+    print(code)
+    print(configuration)
+    print("Retrieve configuration: {}", ResponseStatusCode.get_description(code))
+    print_configuration(configuration)
 
 if __name__ == '__main__':
     asyncio.run(main())
@@ -130,7 +172,7 @@ if __name__ == '__main__':
 	#print_configuration(configuration)
 
 # configuration_to_set = Configuration('900T22D')
-# configuration_to_set.ADDL = 0x02
+# configuration_to_set.ADDL = 0x01
 # configuration_to_set.ADDH = 0x00
 # configuration_to_set.CHAN = 32
 

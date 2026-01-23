@@ -27,3 +27,20 @@ class ProductsInDistributorViewSet(viewsets.ModelViewSet):
 class SellingViewSet(viewsets.ModelViewSet):
     queryset = Selling.objects.all()
     serializer_class = SerSelling
+
+    def perform_create(self, serializer):
+        product = serializer.validated_data['id_product']
+        distributor = serializer.validated_data['id_distributor']
+        serializer.save() #save selling
+
+        # handle selling
+        record = ProductsInDistributor.objects.filter(
+            id_distributor=distributor,
+            id_product=product
+        ).first()
+        if record:
+            if record.quantity > 0:
+                record.quantity -= 1
+                record.save()
+            else:
+                record.delete()

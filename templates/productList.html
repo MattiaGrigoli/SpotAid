@@ -89,9 +89,13 @@
                         {% endif %}
                     {% endfor %}
                 </div>
-                {% if status == 'Alert' %}
+                {% if status == '2' %}
                     <div>
-                        <button>Fine stato di Alert</button>
+                        <form method="POST" action="{% url 'ServerApplication:removeAlert' %}">
+                            {%  csrf_token %}
+                            <input type="hidden" name="id_distributor" value="{{ id_distributor }}">
+                            <button type="submit">Fine stato di Alert</button>
+                        </form>
                     </div>
                 {% endif %}
             </div>

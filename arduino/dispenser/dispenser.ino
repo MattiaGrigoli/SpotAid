@@ -13,10 +13,10 @@
 #include <map>
 
 //IR memory optimizations
-#define RAW_BUFFER_LENGHT 50
-#define EXCLUDE_EXOTIC_PROTOCOLS
-#define DECODE_NEC
-#define NO_LED_FEEDBACK_CODE
+// #define RAW_BUFFER_LENGHT 50
+// #define EXCLUDE_EXOTIC_PROTOCOLS
+// #define DECODE_NEC
+// #define NO_LED_FEEDBACK_CODE
 
 #include <IRremote.hpp>
 
@@ -47,7 +47,7 @@
 #define LORAAUX 15
 #define LORAM0 26
 #define LORAM1 27
-#define BUTTON 35
+#define BUTTON 12
 
 // I2C display A4 e A5
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -65,11 +65,10 @@ DHT dht (DHTPIN, DHTTYPE);
 #define HUMMIN 5
 #define HUMMAX 85
 #define MICMAX 1000 //ESP max 4095
-#define IDMACHINE 1 //change for every dispenser
-#define BRIDGE_ADDL 01
-#define CHANNEL 0x23
+#define BRIDGE_ADDL 1
+#define CHANNEL 32
 #define DELAYLCD 1500 //1.5 seconds
-#define ID_DISPENSER 0 //address LOW 0x02
+#define ID_DISPENSER 2 //address LOW 0x02
 #define DELAYEROGATION 1000 // 1 second
 
 typedef enum 
@@ -150,9 +149,6 @@ void setup() {
   lcd.clear();
   lcd.backlight();
 
-  DEBUG_PRINTLN(F("Initialize IR receiver"));
-  irrecv.enableIRIn();
-
   DEBUG_PRINTLN(F("initialize DHT module module"));
   dht.begin();
 
@@ -163,6 +159,10 @@ void setup() {
 
   DEBUG_PRINTLN(F("Initialize button"));
   pinMode(BUTTON, INPUT_PULLUP);
+  
+  DEBUG_PRINTLN(F("Initialize IR receiver"));
+  //irrecv.enableIRIn();
+  IrReceiver.begin(IRPIN, ENABLE_LED_FEEDBACK);
 
   now = millis();
   displayIndex = 0;
@@ -170,29 +170,42 @@ void setup() {
   status = ALERT;
 
 #ifdef DEBUG_ENABLE
-  //TestErogate();
-  testLcd();
-  testDHT();
-  //testBuz();
-  //testUR();
-  //e220ttl.resetModule();
-  ResponseStructContainer c;
-  c = e220ttl.getConfiguration();
-  // It's important get configuration pointer before all other operation
-  Configuration configuration = *(Configuration*) c.data;
-  Serial.println(c.status.getResponseDescription());
-  Serial.println(c.status.code);
-  
-  printParameters(configuration);
-  c.close();
-  //scanAddress();
+  // DEBUG_PRINTLN("configuring LoRa...");
+  // e220ttl.setMode(MODE_3_PROGRAM);
+  // ResponseStructContainer toconf = e220ttl.getConfiguration();
+  // Configuration config = *(Configuration*) toconf.data;
+  // //config.ADDH = 0x00;
+  // //config.ADDL = 0x02;
+  // //config.CHAN = 0x32;
+  // config.TRANSMISSION_MODE.fixedTransmission = FT_FIXED_TRANSMISSION;
+  // ResponseStatus rs = e220ttl.setConfiguration(config, WRITE_CFG_PWR_DWN_SAVE);
+  // Serial.println(rs.getResponseDescription());
+  // toconf.close();
+  // e220ttl.setMode(MODE_0_NORMAL);
+
+  // ResponseStructContainer c;
+  // c = e220ttl.getConfiguration();
+  // // It's important get configuration pointer before all other operation
+  // Configuration configuration = *(Configuration*) c.data;
+  // Serial.println(c.status.getResponseDescription());
+  // Serial.println(c.status.code);
+
+  // printParameters(configuration);
+  // c.close();
 #endif
 
+  DEBUG_PRINTLN("--- SETUP FINISHED ---");
 }
 
 void loop() {
 #ifdef DEBUG_ENABLE
-
+  // if (IrReceiver.decode()) {
+  //     Serial.print("Protocollo: ");
+  //     Serial.println(IrReceiver.decodedIRData.protocol);
+  //     Serial.print("Codice: 0x");
+  //     Serial.println(IrReceiver.decodedIRData.decodedRawData, HEX);
+  //     IrReceiver.resume();
+  // }
 #endif
   // getting the data to send through LoRa
 
@@ -211,9 +224,9 @@ void loop() {
       {
         displayed = true;
         displayLCD(F("ALERT"), F("out of order!"));
-        sendLora(F("ALERT"));
+        sendLora(F(":ALERT"));
       }
-      if(buttonState == HIGH)
+      if(buttonState == LOW)
       {
         DEBUG_PRINTLN(F("alert button pressed"));
         status = IDLE;
@@ -233,6 +246,7 @@ void loop() {
         if(!displayed)
         {
           displayLCD("waiting list", "");
+          displayed = true;
         }else
         {
           break;
@@ -320,20 +334,26 @@ void loop() {
 IRButton getButtonIR() // takes action based on IR code received
 {
   IRButton button;
-  if(irrecv.decode())
+  if(IrReceiver.decode())
   {
+    DEBUG_PRINTLN("IR received");
+    uint32_t rawData = IrReceiver.decodedIRData.decodedRawData;
     // Check if it is a repeat IR code 
-    if (irrecv.decodedIRData.flags)
-    {
-      //set the current decodedRawData to the last decodedRawData 
-      irrecv.decodedIRData.decodedRawData = last_decodedRawData;
-    } else
-    {
-      //output the IR code on the serial monitor
-      Serial.println(irrecv.decodedIRData.decodedRawData, HEX);
+    // if (irrecv.decodedIRData.flags)
+    // {
+    //   //set the current decodedRawData to the last decodedRawData 
+    //   irrecv.decodedIRData.decodedRawData = last_decodedRawData;
+    // } else
+    // {
+    //   //output the IR code on the serial monitor
+    //   Serial.println(irrecv.decodedIRData.decodedRawData, HEX);
+    // }
+    if (rawData == 0 || IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
+      IrReceiver.resume();
+      return NONE;
     }
     //map the IR code to the remote key
-    switch (irrecv.decodedIRData.decodedRawData)
+    switch (rawData)
     {
       case 0xBA45FF00: button = POWER; break;
       case 0xB847FF00: button = FUNC; break;
@@ -361,9 +381,9 @@ IRButton getButtonIR() // takes action based on IR code received
         button = ERROR;
     }// End Case
     //store the last decodedRawData
-    last_decodedRawData = irrecv.decodedIRData.decodedRawData;
+    //last_decodedRawData = irrecv.decodedIRData.decodedRawData;
     //delay(500); // Do not get immediate repeat
-    irrecv.resume();
+    IrReceiver.resume();
   }else
   {
     button = NONE;
@@ -374,9 +394,10 @@ IRButton getButtonIR() // takes action based on IR code received
 //initial routine at beginning of loop
 State routine()
 {
-  State state = IDLE;
+  State state;
   float temperature = dht.readTemperature();
   float humidity = dht.readHumidity();
+  listenLora();
   if(temperature > TEMPMAX || temperature < TEMPMIN)
   {
     state = ALERT;
@@ -403,6 +424,10 @@ State routine()
       state = IDLE;
     }
   }
+  if(status == ALERT)
+  {
+    state = ALERT;
+  }
 
   // to return IDLE if nothing wrong was found
   return state;
@@ -415,6 +440,7 @@ int readMic()
 
 ResponseStatus sendLora(String msg)
 {
+  DEBUG_PRINTLN("sending LoRa message: " + String(ID_DISPENSER) + msg);
   ResponseStatus rs = e220ttl.sendFixedMessage
   (
     0,
@@ -422,6 +448,8 @@ ResponseStatus sendLora(String msg)
     CHANNEL,
     String(ID_DISPENSER) + msg  //to identify always the dispener
   );
+  //ResponseStatus rs = e220ttl.sendMessage("mandato!");
+  DEBUG_PRINTLN(rs.getResponseDescription());
   return rs;
 }
 
