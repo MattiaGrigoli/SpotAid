@@ -39,8 +39,8 @@ class SellingViewSet(viewsets.ModelViewSet):
             id_product=product
         ).first()
         if record:
-            if record.quantity > 0:
-                record.quantity -= 1
-                record.save()
-            else:
+            record.quantity -= 1
+            if record.quantity == 0:
                 record.delete()
+            else:
+                record.save()

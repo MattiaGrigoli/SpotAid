@@ -64,7 +64,7 @@ DHT dht (DHTPIN, DHTTYPE);
 #define TEMPMAX 30
 #define HUMMIN 5
 #define HUMMAX 85
-#define MICMAX 1000 //ESP max 4095
+#define MICMAX 200 //ESP max 4095
 #define BRIDGE_ADDL 1
 #define CHANNEL 32
 #define DELAYLCD 1500 //1.5 seconds
@@ -170,6 +170,7 @@ void setup() {
   status = ALERT;
 
 #ifdef DEBUG_ENABLE
+  //TestErogate();
   // DEBUG_PRINTLN("configuring LoRa...");
   // e220ttl.setMode(MODE_3_PROGRAM);
   // ResponseStructContainer toconf = e220ttl.getConfiguration();
@@ -236,6 +237,12 @@ void loop() {
     }
     case EROGATION:
     {
+      if(millis() > now + DELAYEROGATION)
+      {
+        DEBUG_PRINTLN("erogation time passed");
+        stopErogation();
+        status = IDLE;
+      }
       break;
     }
     case IDLE:
@@ -337,6 +344,7 @@ IRButton getButtonIR() // takes action based on IR code received
   if(IrReceiver.decode())
   {
     DEBUG_PRINTLN("IR received");
+    tone(BUZPIN, melody[0], 100);
     uint32_t rawData = IrReceiver.decodedIRData.decodedRawData;
     // Check if it is a repeat IR code 
     // if (irrecv.decodedIRData.flags)
@@ -394,38 +402,53 @@ IRButton getButtonIR() // takes action based on IR code received
 //initial routine at beginning of loop
 State routine()
 {
-  State state;
+  State state = IDLE;
   float temperature = dht.readTemperature();
   float humidity = dht.readHumidity();
+  //DEBUG_PRINTLN("temperature= " + String(temperature) + " humidity= " + String(humidity) + " microphone =" + String(readMic()));
   listenLora();
   if(temperature > TEMPMAX || temperature < TEMPMIN)
   {
     state = ALERT;
+    DEBUG_PRINTLN("temperature outside range:" + String(temperature));
     stopErogation();
+    displayed = false;
     //immediately return for emergency
     return state;
   }else if (humidity > HUMMAX || humidity < HUMMIN)
   {
     state = ALERT;
+    DEBUG_PRINTLN("humidity outside range:" + String(humidity));
     stopErogation();
+    displayed = false;
     return state;
   }
   if (readMic() > MICMAX)
   {
     state = ALERT;
+    DEBUG_PRINTLN("microphone outside range:"+ readMic());
     stopErogation();
+    displayed = false;
     return state;
   }
+  //DEBUG_PRINTLN("status="+ String(status));
   if(status == EROGATION)
   {
-    if(millis() > now + DELAYEROGATION)
-    {
-      stopErogation();
-      state = IDLE;
-    }
+    return EROGATION;
+    // if(millis() > now + DELAYEROGATION)
+    // {
+    //   DEBUG_PRINTLN("erogation time passed");
+    //   stopErogation();
+    //   state = IDLE;
+    // }else
+    // {
+    //   DEBUG_PRINTLN("erogation time NOT passed");
+    //   state = EROGATION;
+    // }
   }
   if(status == ALERT)
   {
+    //DEBUG_PRINTLN("status already on alert");
     state = ALERT;
   }
 
@@ -568,6 +591,7 @@ void startErogation()
 void stopErogation()
 {
   DEBUG_PRINTLN(F("stopping rotating"));
+  tone(BUZPIN, melody[2], 100);
   digitalWrite(DCDIRA, LOW);
   digitalWrite(DCDIRB, LOW);
   return;
