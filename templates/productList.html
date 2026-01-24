@@ -80,8 +80,8 @@
         </table>
     </div>
     {% if user.is_authenticated %}
-        {% if best_otm %}
-            <div class="distributors-menu">
+        <div class="distributors-menu">
+            {% if best_otm %}
                 <div class="selling-results">
                     {% for p in products %}
                         {% if p.id == best_otm.product_id %}
@@ -89,17 +89,17 @@
                         {% endif %}
                     {% endfor %}
                 </div>
-                {% if status == '2' %}
-                    <div>
-                        <form method="POST" action="{% url 'ServerApplication:removeAlert' %}">
+            {% endif %}
+            {% if status == '2' %}
+                <div class="alert-zone">
+                    <form class="alert-form" method="POST" action="{% url 'ServerApplication:removeAlert' %}">
                             {%  csrf_token %}
                             <input type="hidden" name="id_distributor" value="{{ id_distributor }}">
-                            <button type="submit">Fine stato di Alert</button>
-                        </form>
-                    </div>
-                {% endif %}
-            </div>
-        {% endif %}
+                        <button type="submit">Fine stato di Alert</button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
     {% endif %}
 </div>
 </body>

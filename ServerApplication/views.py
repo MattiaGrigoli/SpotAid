@@ -55,8 +55,6 @@ class MapView(TemplateView):
             popup_html = f'''
                 <b>Coordinate:</b> 40.417, -3.70<br>
                 <a href="{target_url}/{distributor.id}" >Clicca qui per la lista di prodotti!</a>
-                <hr>
-                dispenser all'interno del campus universitario DIEF UNIMORE
             '''
 
             if distributor.status == '1':   #Operative
